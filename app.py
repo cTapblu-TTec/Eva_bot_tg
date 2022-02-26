@@ -41,14 +41,13 @@ async def main():
     # _________SCHEDULER________
     scheduler = AsyncIOScheduler()
     scheduler.timezone = pytz.timezone('Europe/Moscow')
-    scheduler.add_job(reset_statistics, 'cron', hour=2, minute=30)
+    scheduler.add_job(reset_statistics, 'cron', hour=4, minute=30)
     # _________POOL________
     pool = await create_pool()
     await users_db.create(pool)
     await vars_db.create(pool)
     await stat_db.create(pool)
     await files_db.create(pool)
-
 
     # _________START BOT________
     await on_startup()

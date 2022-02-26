@@ -56,16 +56,3 @@ async def dlu(message: types.Message):
         await stat_db.write('other', message.from_user.username)  # пишем статистику
         await message.reply("Вы не админ этого бота, извините")
         return
-
-"""
-# отправляет файл
-@dp.message_handler(commands=['f'])
-async def f(message: types.Message):
-    stats(message.from_user.username, 'other')
-    if str(message.from_user.id) in ADMINS:
-        await message.reply(message.from_user.id)
-        file = open('settings.txt', 'rb')
-        # await dp.bot.send_document(int(admin), file)
-        await message.reply_document(file)
-        file.close()
-"""

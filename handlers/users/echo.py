@@ -31,8 +31,8 @@ async def bot_echo(message: types.Message):
 
     if user == 'admin':
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        buttons = "/admin"
-        keyboard.add(buttons)
+        buttons = ["/admin", "/gena"]
+        keyboard.add(*buttons)
         buttons = ["/otmetki", "/shablon"]
         keyboard.add(*buttons)
         buttons = ["/storis", "/vk"]

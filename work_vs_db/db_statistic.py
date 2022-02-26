@@ -3,7 +3,7 @@ import asyncpg
 
 class StatDatabase:
     pool: asyncpg.Pool
-    users_st: list  #   users_st - список имен юзеров в статистике
+    users_st: list  # users_st - список имен юзеров в статистике
 
     # ______CREATE______
     async def create(self, pool: asyncpg.Pool):
@@ -51,7 +51,6 @@ class StatDatabase:
         file.close()
 
     # ______WRITE______
-    #   USERS_stat - список имен юзеров в статистике
     #   ведение statistic
     async def write(self, command: str, user_name: str):
 

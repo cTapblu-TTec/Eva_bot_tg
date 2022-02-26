@@ -43,6 +43,8 @@ class UsersDatabase:
             u = await self.read('get_names_users', '')
         self.users_names = u
         self.users = {i: await users_db.read('n_zamen, n_last_otm, n_last_shabl', i) for i in self.users_names}
+        # for i in self.users:
+        #     print(self.users[i].n_last_shabl)
 
     # __________READ__________
     async def read(self, command: str, user_name: str):
@@ -59,7 +61,7 @@ class UsersDatabase:
             # 'user_name, user_id, n_zamen, n_last_otm, n_last_shabl, status'
             query = f'SELECT {command} FROM users WHERE user_name = $1;'
             async with self.pool.acquire(): u = await self.pool.fetch(query, user_name)
-            user = User
+            user = User()
             user.user_name = user_name
             if 'n_zamen' in command:
                 user.n_zamen = u[0]['n_zamen']
