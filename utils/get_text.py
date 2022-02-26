@@ -99,7 +99,7 @@ async def Vid_Otmetok(text, a, k, l_otm_vernuli):
         text += '\nсписок отметок исчерпан'
         if n_last_otm == (): n_last_otm = 0
         for admin in ADMINS:
-            await dp.bot.send_message(admin, "список отметок исчерпан")
+            await dp.bot.send_message(admin, "файл otmetki.txt исчерпан")
     return text, a, n_last_otm, l_otm_vernuli
 
 
@@ -119,8 +119,8 @@ async def get_vk_text(n_f_line: int, n_get: int, k: int, file: str):
             n_f_line += 1
     text = f'{n_get} \n {text}'
     if not use:
-        text += '\nсписок отметок исчерпан'
+        text += '\nсписок исчерпан'
         for admin in ADMINS:
-            await dp.bot.send_message(admin, "список отметок исчерпан")
+            await dp.bot.send_message(admin, "файл vk исчерпан, смотри /st")
 
     return text, n_f_line, n_get + 1

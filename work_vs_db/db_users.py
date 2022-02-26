@@ -7,7 +7,7 @@ class User:
     n_zamen: int
     n_last_otm: tuple
     n_last_shabl: tuple
-    # status: str
+    # status: str - хочу добавить кураторов
 
 
 class UsersDatabase:

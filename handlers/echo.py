@@ -7,9 +7,11 @@ from loader import dp
 @dp.message_handler(commands=['b'])
 async def bot_echo(message: types.Message):
     user = await prover(message, 'other')  # проверяем статус пользователя
-    if user == "guest":return
+    if user == "guest": return
 
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    buttons = '/st'
+    keyboard.add(buttons)
     buttons = ["/vk_id", "/vk_http"]
     keyboard.add(*buttons)
     buttons = ["/vk_club", "/vk_lots"]

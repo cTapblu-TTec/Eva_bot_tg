@@ -43,7 +43,7 @@ async def dlu(message: types.Message):
 
 @dp.message_handler(commands=['st'])
 async def st(message: types.Message):
-    if str(message.from_user.id) in ADMINS:
+    if str(message.from_user.id) in ADMINS or message.from_user.username == 'dariasuv':
         lo = len(utils.get_text.s.l_otmetki)
         ls = len(utils.get_text.s.l_polina)
         text_vk = ''
