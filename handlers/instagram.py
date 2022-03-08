@@ -27,6 +27,7 @@ async def shab(message: types.Message):
     user = await prover(message, 'shablon')  # проверяем статус пользователя и пишем статистику
     if user == "guest": return
 
+    # ВНИМАНИЕ - здесть нужно заменить на get_user с проверкой наличия Админа в списке!!
     u = users_db.users[message.from_user.username]
 
     k = 3  # сколько выдать отметок

@@ -5,8 +5,8 @@ from work_vs_db.db_vars import vars_db
 
 
 async def reset_statistics():
-    await stat_db.get()
-    file = open('statistic.txt', 'rb')
+    await stat_db.get_html()
+    file = open('statistic.html', 'rb')
     await dp.bot.send_document(LOG_CHAT, file, caption='Статистика, счетчики сторис и шаблонов сброшены')
     file.close()
 

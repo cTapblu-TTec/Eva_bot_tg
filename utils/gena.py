@@ -94,10 +94,11 @@ class Predlojenie:
         return text
 
     async def slojenie_slov(self):
-        t_l = [self.opredelenie.text, self.podlezashee.text, self.obstoyatelstvo.text, self.skazuemoe.text, self.dopolnenie.text]
+        t_l = [self.opredelenie.text, self.podlezashee.text, self.obstoyatelstvo.text, self.skazuemoe.text,
+               self.dopolnenie.text]
         t = ''
         for i in t_l:
-            if not '$' in i and i.strip():
+            if '$' not in i and i.strip():
                 t += i
         t = t.strip().replace('  ', ' ')
         x = t[:1].upper()

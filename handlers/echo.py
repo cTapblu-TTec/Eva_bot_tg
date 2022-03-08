@@ -29,7 +29,7 @@ async def bot_echo(message: types.Message):
 @dp.message_handler(state=None)
 async def bot_echo(message: types.Message):
     user = await prover(message, 'other')  # проверяем статус пользователя
-    if user == "guest":return
+    if user == "guest": return
 
     if user == 'admin':
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -57,8 +57,8 @@ async def bot_echo(message: types.Message):
         keyboard.add(*buttons)
 
         await message.answer("Привет, я Ева! \n "
-                                 "Для топа, нажми /shablon \n "
-                                 "Для отметок по 5, нажми /otmetki \n "
-                                 "Для сторис, нажми /storis \n "
-                                 "Для ВК, нажми /vk \n"
-                                 "Чтобы вернуть отметки нажми /vern", reply_markup=keyboard)
+                             "Для топа, нажми /shablon \n "
+                             "Для отметок по 5, нажми /otmetki \n "
+                             "Для сторис, нажми /storis \n "
+                             "Для ВК, нажми /vk \n"
+                             "Чтобы вернуть отметки нажми /vern", reply_markup=keyboard)

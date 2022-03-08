@@ -15,12 +15,12 @@ async def adu(message: types.Message):
         text = text.strip()
         text = text.lstrip('@')
         iskl = ' !"$%&()*+,/:;<>=?@^#{}|~'
-        DO = True
+        begin = True
         for i in iskl:
             if i in text:
-                DO = False
-        if text == '': DO = False
-        if text.isascii() and DO:
+                begin = False
+        if text == '': begin = False
+        if text.isascii() and begin:
             if text in users:
                 await message.reply("Пользователь уже был в списке")
                 return

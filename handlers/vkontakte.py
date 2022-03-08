@@ -99,8 +99,6 @@ async def vk(message: types.Message):
 
     u = users_db.users[message.from_user.username]
 
-    k = 3  # сколько выдать отметок
-
     text, vars_db.n_shablon, u.n_zamen, u.n_last_shabl = await Vid_Shabl(vars_db.n_shablon, u.n_zamen,
                                                                          u.n_last_shabl)  # получаем шаблон
 
@@ -109,4 +107,3 @@ async def vk(message: types.Message):
     await users_db.write(message.from_user.username, ['n_zamen', 'n_last_shabl'], [u.n_zamen, u.n_last_shabl])
     await vars_db.write(['n_shablon'], [vars_db.n_shablon])
     await log(f'({message.from_user.username} - /vk)\n')
-

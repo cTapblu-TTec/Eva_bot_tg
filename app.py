@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import asyncpg
-import pytz
+from pytz import timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import handlers
@@ -40,7 +40,7 @@ async def main():
     logger.info("Starting bot")
     # _________SCHEDULER________
     scheduler = AsyncIOScheduler()
-    scheduler.timezone = pytz.timezone('Europe/Moscow')
+    scheduler.timezone = timezone('Europe/Moscow')
     scheduler.add_job(reset_statistics, 'cron', hour=4, minute=30)
     # _________POOL________
     pool = await create_pool()

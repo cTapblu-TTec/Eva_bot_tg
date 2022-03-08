@@ -1,8 +1,8 @@
 from aiogram import types
 
-from data.config import ADMINS, LOG_CHAT
+from data.config import ADMINS
 from loader import dp
-from work_vs_db.db_files import files_db
+from work_vs_db.db_files import files_db, download
 from work_vs_db.db_statistic import stat_db
 from utils.get_text import s
 from work_vs_db.db_vars import vars_db
@@ -12,25 +12,35 @@ from work_vs_db.db_vars import vars_db
 async def download_doc(message: types.Message):
     if str(message.from_user.id) in ADMINS:
         files = ['otmetki.txt', 'vk_id.txt', 'vk_club.txt', 'vk_lots.txt', 'vk_http.txt', 'polina.txt', 'name.txt']
-        if message.document.file_name in files:
-            vars = [vars_db.n_otmetki, vars_db.n_vk_id, vars_db.n_vk_club, vars_db.n_vk_lots, vars_db.n_vk_http, None,
-                    None]
+        if message.document.file_name in files:  # если файл с правильным именем
+            vars_ = [vars_db.n_otmetki, vars_db.n_vk_id, vars_db.n_vk_club, vars_db.n_vk_lots, vars_db.n_vk_http, None,
+                     None]
             for i in range(len(files)):
                 if message.document.file_name == files[i]:
 
-                    file = open(message.document.file_name, 'rb')
+                    # -= ОТПРАВЛЯЕМ СТАРЫЙ ФАЙЛ:
                     # await dp.bot.send_document(int(admin), file)
-                    if vars[i]:
-                        await message.reply_document(file, caption=f'Старая версия (использовано {vars[i]})\nФайл заменен')
-                        await dp.bot.send_document(LOG_CHAT, file, caption=f'Старая версия (использовано {vars[i]})\nФайл заменен')
+                    if vars_[i]:
+                        with open(message.document.file_name, 'rb') as f:
+                            await message.reply_document(f,
+                                                         caption=f'Старая версия (использовано {vars_[i]})\nФайл заменен')
                     else:
-                        await message.reply_document(file, caption='Старая версия \nФайл заменен')
-                        await dp.bot.send_document(LOG_CHAT, file, caption='Старая версия \nФайл заменен')
-                    file.close()
-                    await message.document.download(destination_file=message.document.file_name)
-                    if message.document.file_name in ('otmetki.txt', 'polina.txt', 'name.txt'):
-                        s.create_spiski((message.document.file_name,))
-                    await files_db.write(message.document.file_name, message.document.file_id)
+                        with open(message.document.file_name, 'rb') as f:
+                            await message.reply_document(f, caption='Старая версия \nФайл заменен')
+
+                    # -= СКАЧИВАЕМ НОВЫЙ ФАЙЛ:
+                    try:
+                        await message.document.download(destination_file=message.document.file_name)
+                        with open(message.document.file_name, 'r') as f:
+                            f.readline()  # проверяем что файл читается
+                        await files_db.write(message.document.file_name,
+                                             message.document.file_id)  # сохраняем новый id файла
+                        if message.document.file_name in ('otmetki.txt', 'polina.txt', 'name.txt'):
+                            s.create_spiski((message.document.file_name,))
+                    except Exception:
+                        await message.reply('Не удалось прочесть новый файл, файл не заменен, возвращен старый, '
+                                            'проверьте кодировку')
+                        await download(message.document.file_name)  # скачиваем обратно старый файл
 
         else:
             await message.reply(f"Неверное имя файла, доступные имена: {files}")

@@ -36,7 +36,7 @@ class UsersDatabase:
             f = open('users.txt', 'r')
             u = f.readlines()
             f.close()
-            query = """ INSERT INTO users (user_name) VALUES ($1) ON CONFLICT (user_name) DO NOTHING;"""
+            query = """INSERT INTO users (user_name) VALUES ($1) ON CONFLICT (user_name) DO NOTHING;"""
             for user in u:
                 user = user.rstrip('\n')
                 async with self.pool.acquire(): await self.pool.execute(query, user)
@@ -59,7 +59,7 @@ class UsersDatabase:
 
         else:
             # 'user_name, user_id, n_zamen, n_last_otm, n_last_shabl, status'
-            query = f'SELECT {command} FROM users WHERE user_name = $1;'
+            query = f"""SELECT {command} FROM users WHERE user_name = $1;"""
             async with self.pool.acquire(): u = await self.pool.fetch(query, user_name)
             user = User()
             user.user_name = user_name
@@ -77,16 +77,17 @@ class UsersDatabase:
     async def write(self, user_name, command, USER):
 
         if command == 'add_user':
-            query = """ INSERT INTO users (user_name) VALUES ($1) ON CONFLICT (user_name) DO NOTHING;"""
+            query = """INSERT INTO users (user_name) VALUES ($1) ON CONFLICT (user_name) DO NOTHING;"""
             async with self.pool.acquire(): await self.pool.execute(query, user_name)
             self.users_names.append(user_name)
-
+            user = User()
+            user.n_zamen, user.n_last_otm, user.n_last_shabl = 0, (), ()
+            self.users.update({user_name: user})
         elif command == 'dell_user':
-            query = 'DELETE FROM users WHERE user_name = $1;'
+            query = """DELETE FROM users WHERE user_name = $1;"""
             async with self.pool.acquire(): await self.pool.execute(query, user_name)
             self.users_names.remove(user_name)
 
-        # await users_db.write('Princ', ['n_zamen', 'n_last_otm', 'n_last_shabl'], [345, 3, (43,45)])
         else:
             stolbec = command  # ['user_id', 'n_zamen', 'n_last_otm', 'n_last_shabl']
             stolbcov = len(command)

@@ -46,10 +46,12 @@ class FileDatabase:
 
 
 async def download(file_name: str):
-    file_id = files_db.files[file_name]
+    file_id = files_db.files[file_name]  # берем id из базы
+    # получаем файл по id из телеграмма
     file = await dp.bot.get_file(file_id)
     file_path = file.file_path
     await dp.bot.download_file(file_path, file_name)
+    # читаем файл если он из тех что хранятся в памяти
     if file_name in ('otmetki.txt', 'polina.txt', 'name.txt'):
         s.create_spiski((file_name,))
 

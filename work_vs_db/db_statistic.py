@@ -1,4 +1,6 @@
 import asyncpg
+from datetime import datetime
+from pytz import timezone
 
 
 class StatDatabase:
@@ -28,17 +30,18 @@ class StatDatabase:
         self.users_st = []
         for i in u:
             self.users_st.append(i[0])
-        #print(self.users_st)
+        # print(self.users_st)
 
     # ______GET______
     async def get(self):
         query = 'SELECT * FROM statistic;'
-        async with self.pool.acquire(): ST =  await self.pool.fetch(query)
+        async with self.pool.acquire():
+            stat = await self.pool.fetch(query)
 
         text = 'User\t'.expandtabs(tabsize=20) + 'shablon\tvk\tstoris\tvk_otm\totmetki\tДругое\tВсего\n'.expandtabs(
             tabsize=10)
 
-        for i in ST:
+        for i in stat:
             i = list(i)
             k = i.pop(0)
             t = ''
@@ -47,6 +50,67 @@ class StatDatabase:
             text = text + (str(k) + '\t').expandtabs(tabsize=20) + t.lstrip('\t').expandtabs(tabsize=10) + '\n'
 
         file = open('statistic.txt', 'w')
+        file.write(text)
+        file.close()
+
+    # ______GET HTML______
+    async def get_html(self):
+        query = 'SELECT * FROM statistic;'
+        async with self.pool.acquire():
+            stat = await self.pool.fetch(query)
+        dtime = datetime.now(tz=timezone('Europe/Moscow')).strftime('%d.%m.%Y %H:%M')
+        head = """
+        <!DOCTYPE HTML>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Статистика</title>
+        </head>
+        <style>
+            table
+                {border-collapse: collapse;
+                width: 100%;
+                background-color: White;}
+            th
+                {font-weight:normal;
+                 background-color:  MediumVioletRed;
+                 color: White;}
+            th, td
+                {border: 1px solid Teal; 
+                padding: 2px;
+                text-align: center; 
+                width: 100px;}
+            body
+                {background-color: Teal;
+                font: 100% monospace;
+                font-style: normal;}
+            caption
+                {color: White;
+                text-align: left;}
+        </style>
+        <body>
+            <table>
+            <colgroup>
+                <col span="1" style="background:#FFFACD">
+            </colgroup>
+            <caption>""" + dtime + """</caption>
+            <tr><th>User</th><th>shablon</th><th>vk</th><th>storis</th><th>vk_otm</th><th>otmetki</th><th>Другое</th><th>Всего</th></tr>"""
+
+        table = ''
+        for i in stat:
+            i = list(i)
+            table += '\n\t\t\t<tr>'
+            for j in i:
+                table += '<td>' + str(j) + '</td>'
+            table += '</tr>'
+        close = """
+            </table>
+        </body>
+        </html>"""
+
+        text = head + table + close
+
+        file = open('statistic.html', 'w', encoding='utf-8')
         file.write(text)
         file.close()
 

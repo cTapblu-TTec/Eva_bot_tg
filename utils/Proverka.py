@@ -16,4 +16,3 @@ async def prover(message: types.Message, command):
         await message.answer("Извините, у Вас нет доступа к боту")
     await stat_db.write(command, message.from_user.username)  # пишем статистику
     return user
-
