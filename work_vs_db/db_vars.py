@@ -14,11 +14,13 @@ class VarsDatabase:
     n_vk_club: int
     n_get_lots: int
     n_vk_lots: int
+    n_siti_otm: int
+    n_siti_get: int
 
     # __________CREAT__________
     async def create(self, pool: asyncpg.Pool):
         self.pool = pool
-
+        # await self.dell()
         query = """CREATE TABLE IF NOT EXISTS public.vars
                 (
                     n_otmetki integer NOT NULL DEFAULT 0,
@@ -32,6 +34,8 @@ class VarsDatabase:
                     n_vk_club smallint NOT NULL DEFAULT 0,
                     n_get_lots smallint NOT NULL DEFAULT 1,
                     n_vk_lots smallint NOT NULL DEFAULT 0,
+                    n_siti_get smallint NOT NULL DEFAULT 1,
+                    n_siti_otm smallint NOT NULL DEFAULT 0,
                     num smallint NOT NULL DEFAULT 1,
                     CONSTRAINT vars_pkey PRIMARY KEY (num)
                 );
@@ -61,6 +65,8 @@ class VarsDatabase:
         self.n_vk_club = v[0]['n_vk_club']
         self.n_get_lots = v[0]['n_get_lots']
         self.n_vk_lots = v[0]['n_vk_lots']
+        self.n_siti_get = v[0]['n_siti_get']
+        self.n_siti_otm = v[0]['n_siti_otm']
 
     # __________WRITE__________
     async def write(self, command: list, DICT: list):
@@ -81,6 +87,13 @@ class VarsDatabase:
             if stolbec[i] == 'n_vk_club': self.n_vk_club = DICT[i]
             if stolbec[i] == 'n_get_lots': self.n_get_lots = DICT[i]
             if stolbec[i] == 'n_vk_lots': self.n_vk_lots = DICT[i]
+            if stolbec[i] == 'n_siti_get': self.n_siti_get = DICT[i]
+            if stolbec[i] == 'n_siti_otm': self.n_siti_otm = DICT[i]
+
+            # __________DELETE TABLE__________
+    async def dell(self):
+        query = 'DROP TABLE public.vars'
+        async with self.pool.acquire(): await self.pool.execute(query)
 
 
 vars_db = VarsDatabase()

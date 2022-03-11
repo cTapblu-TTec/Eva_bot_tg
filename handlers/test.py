@@ -15,6 +15,7 @@ from work_vs_db.db_vars import vars_db
 async def ad_rs(message: types.Message):
 
     if str(message.from_user.id) in ADMINS:
+
         print(vars_db.n_otmetki, vars_db.n_storis, vars_db.n_shablon)
 
         #u = await users_db.read('n_zamen, n_last_otm, n_last_sabl', 'cTapblu_TTec')

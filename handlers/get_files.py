@@ -2,6 +2,7 @@ from aiogram import types
 
 from data.config import ADMINS
 from loader import dp
+from utils.log import log
 from work_vs_db.db_files import files_db, download
 from work_vs_db.db_statistic import stat_db
 from utils.get_text import s
@@ -37,6 +38,10 @@ async def download_doc(message: types.Message):
                                              message.document.file_id)  # сохраняем новый id файла
                         if message.document.file_name in ('otmetki.txt', 'polina.txt', 'name.txt'):
                             s.create_spiski((message.document.file_name,))
+
+                        await log(f'admin: Заменен файл - {message.document.file_name}, '
+                                  f'({message.from_user.username}\n')
+
                     except Exception:
                         await message.reply('Не удалось прочесть новый файл, файл не заменен, возвращен старый, '
                                             'проверьте кодировку')

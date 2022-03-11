@@ -2,3 +2,4 @@ aiogram
 asyncio
 asyncpg
 apscheduler
+pytz

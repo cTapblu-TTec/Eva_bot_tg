@@ -2,7 +2,7 @@ from aiogram import types
 
 from loader import dp
 from utils.Proverka import prover
-from utils.get_text import Vid_Shabl, Vid_Otmetok, s
+from utils.get_text import Vid_Shabl, Vid_Otmetok, s, get_vk_text
 from utils.log import log
 from utils.gena import gennadij
 
@@ -67,6 +67,47 @@ async def stor(message: types.Message):
         f'№ отметки: {vars_db.n_otmetki}, № сторис: {vars_db.n_storis} ({message.from_user.username} - /storis)\n')
 
 
+@dp.message_handler(commands=['gor_shab'])
+async def siti_shab(message: types.Message):
+    user = await prover(message, 'shablon')  # проверяем статус пользователя и пишем статистику
+    if user == "guest": return
+
+    # ВНИМАНИЕ - здесть нужно заменить на get_user с проверкой наличия Админа в списке!!
+    u = users_db.users[message.from_user.username]
+
+    k = 3  # сколько выдать отметок
+
+    text_shab, vars_db.n_shablon, u.n_zamen, u.n_last_shabl = \
+        await Vid_Shabl(vars_db.n_shablon, u.n_zamen, u.n_last_shabl)  # получаем шаблон
+
+    text_otm, vars_db.n_siti_otm, x = await get_vk_text(vars_db.n_siti_otm, -1,
+                                                                         k, 'siti_otm.txt')
+
+    text = text_shab + text_otm
+    await message.answer(text)
+
+    await users_db.write(message.from_user.username, ['n_zamen', 'n_last_shabl'],
+                         [u.n_zamen, u.n_last_shabl])
+    await vars_db.write(['n_siti_otm'], [vars_db.n_siti_otm])
+    await log(f'№ siti_otm: {vars_db.n_siti_otm}, ({message.from_user.username} - /gor_shab)\n')
+
+
+# STORIS
+@dp.message_handler(commands=['gor_stor'])
+async def siti_stor(message: types.Message):
+    user = await prover(message, 'storis')  # проверяем статус пользователя и пишем статистику
+    if user == "guest": return
+
+    k = 9  # сколько выдать отметок
+
+    text, vars_db.n_siti_otm, vars_db.n_siti_get = await get_vk_text(vars_db.n_siti_otm, vars_db.n_siti_get,
+                                                                     k, 'siti_otm.txt')
+    await message.answer('Город ' + text)
+
+    await vars_db.write(['n_siti_otm', 'n_siti_get'], [vars_db.n_siti_otm, vars_db.n_siti_get])
+    await log(f'№ siti_otm: {vars_db.n_siti_otm}, ({message.from_user.username} - /gor_stor)\n')
+
+
 # OTMETKI
 @dp.message_handler(commands=['otmetki'])
 async def otm(message: types.Message):
@@ -112,4 +153,4 @@ async def vernut(message: types.Message):
         s.l_otm_vernuli += list_o  # добавляем возвращенные отметки в список
         await message.answer("отметки, " + str(len(list_o)) + "шт. возвращены боту")
     await users_db.write(message.from_user.username, ['n_last_otm'], [0])
-    await log('Вернула отметки ({message.from_user.username} - /vern)\n')
+    await log(f'Вернула отметки ({message.from_user.username} - /vern)\n')

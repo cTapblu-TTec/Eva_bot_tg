@@ -117,7 +117,9 @@ async def get_vk_text(n_f_line: int, n_get: int, k: int, file: str):
             if text != '' and text[-1] != '\n': text = text + '\n'
             text += str(linesf[n_f_line])
             n_f_line += 1
-    text = f'{n_get} \n {text}'
+    if n_get != -1:
+        text = f'{n_get}\n{text}'
+
     if not use:
         text += '\nсписок исчерпан'
         for admin in ADMINS:

@@ -3,6 +3,7 @@ from aiogram import types
 import utils.get_text
 from data.config import ADMINS
 from loader import dp
+from utils.log import log
 from work_vs_db.db_statistic import stat_db
 from work_vs_db.db_users import users_db
 from work_vs_db.db_vars import vars_db
@@ -23,7 +24,8 @@ async def ad_m(message: types.Message):
                              "/set_vk_http - установка ВК людей\n"
                              "/set_vk_club - установка ВК групп\n"
                              "/set_vk_lots - установка ВК лотерей\n"
-                             "/files - инструкция по отправки файла")
+                             "/set_siti_otm - установка отметок города\n"
+                             "/files - инструкция по отправке файла")
     else:
         await stat_db.write('other', message.from_user.username)  # пишем статистику
         await message.answer("Вы не админ этого бота, извините")
@@ -46,8 +48,8 @@ async def st(message: types.Message):
         lo = len(utils.get_text.s.l_otmetki)
         ls = len(utils.get_text.s.l_polina)
         text_vk = ''
-        fails = ['vk_club.txt', 'vk_http.txt', 'vk_id.txt', 'vk_lots.txt']
-        vars_ = [vars_db.n_vk_club, vars_db.n_vk_http, vars_db.n_vk_id, vars_db.n_vk_lots]
+        fails = ['vk_club.txt', 'vk_http.txt', 'vk_id.txt', 'vk_lots.txt', 'siti_otm.txt']
+        vars_ = [vars_db.n_vk_club, vars_db.n_vk_http, vars_db.n_vk_id, vars_db.n_vk_lots, vars_db.n_siti_otm]
         k = 0
         for i in fails:
             with open(i, "r") as f:
@@ -72,6 +74,7 @@ async def stu(message: types.Message):
         await message.reply_document(file)
         file.close()
 
+
     else:
         await stat_db.write('other', message.from_user.username)  # пишем статистику
         await message.answer("Вы не админ этого бота, извините")
@@ -84,6 +87,8 @@ async def ad_so(message: types.Message):
         if num.isdigit():  # если число
             await vars_db.write(['n_otmetki'], [int(num)])
             await message.answer("Отметки установлены, для проверки нажмите /st")
+            await log(f'admin: n_otmetki: {num}, ({message.from_user.username} - /setOtm)\n')
+
         else:
             await message.answer("Ошибка ввода, пример команды: /setOtm 100")
     else:
@@ -98,6 +103,8 @@ async def ad_rs(message: types.Message):
         if num.isdigit() and 1 <= int(num) <= 500:
             await vars_db.write(['n_storis'], [int(num)])
             await message.answer("Следующий сторис будет с номером " + num)
+            await log(f'admin: n_storis: {num}, ({message.from_user.username} - /setStor)\n')
+
         else:
             await message.answer("Ошибка ввода, пример команды: /reStor 1")
     else:
@@ -111,6 +118,8 @@ async def ad_rs(message: types.Message):
         await stat_db.clear()
         await vars_db.write(['n_shablon'], [0])
         await message.answer("Cтатистика по пользователям и счетчик шаблонов сброшены. /stUsers")
+        await log(f'admin: Cтатистика сброшена, ({message.from_user.username} - /reStUr)\n')
+
     else:
         await stat_db.write('other', message.from_user.username)  # пишем статистику
         await message.answer("Вы не админ этого бота, извините")
@@ -121,9 +130,10 @@ async def ad_rs(message: types.Message):
     if str(message.from_user.id) in ADMINS:
         num = message.text[11:].strip()
         if num.isdigit() and 0 <= int(num) <= 30000:
-            await vars_db.write(['n_vk_id', 'n_get_id'], [int(num), 1])
-            await message.answer(f'позиция ВК сторисов установлена на {num}\n'
-                                 'счетчик ВК сторисов начнётся с 1')
+            await vars_db.write(['n_vk_id'], [int(num)])
+            await message.answer(f'позиция ВК сторисов установлена на {num}')
+            await log(f'admin: n_vk_id: {num}, ({message.from_user.username} - /set_vk_id)\n')
+
         else:
             await message.answer("ошибка ввода, пример комманды: /set_vk_id 100")
     else:
@@ -136,9 +146,10 @@ async def ad_rs(message: types.Message):
     if str(message.from_user.id) in ADMINS:
         num = message.text[13:].strip()
         if num.isdigit() and 0 <= int(num) <= 30000:
-            await vars_db.write(['n_vk_club', 'n_get_club'], [int(num), 1])
-            await message.answer(f'позиция ВК групп установлена на {num}\n'
-                                 'счетчик ВК групп начнётся с 1')
+            await vars_db.write(['n_vk_club'], [int(num)])
+            await message.answer(f'позиция ВК групп установлена на {num}')
+            await log(f'admin: n_vk_club: {num}, ({message.from_user.username} - /set_vk_club)\n')
+
         else:
             await message.answer("ошибка ввода, пример комманды: /set_vk_club 100")
     else:
@@ -151,9 +162,10 @@ async def ad_rs(message: types.Message):
     if str(message.from_user.id) in ADMINS:
         num = message.text[13:].strip()
         if num.isdigit() and 0 <= int(num) <= 30000:
-            await vars_db.write(['n_vk_http', 'n_get_http'], [int(num), 1])
-            await message.answer(f'позиция ВК людей установлена на {num}\n'
-                                 'счетчик ВК людей начнётся с 1')
+            await vars_db.write(['n_vk_http'], [int(num)])
+            await message.answer(f'позиция ВК людей установлена на {num}')
+            await log(f'admin: n_vk_http: {num}, ({message.from_user.username} - /set_vk_http)\n')
+
         else:
             await message.answer("ошибка ввода, пример комманды: /set_vk_http 100")
     else:
@@ -166,11 +178,28 @@ async def ad_rs(message: types.Message):
     if str(message.from_user.id) in ADMINS:
         num = message.text[13:].strip()
         if num.isdigit() and 0 <= int(num) <= 30000:
-            await vars_db.write(['n_vk_lots', 'n_get_lots'], [int(num), 1])
-            await message.answer(f'позиция ВК лотерей установлена на {num}\n'
-                                 'счетчик ВК лотерей начнётся с 1')
+            await vars_db.write(['n_vk_lots'], [int(num)])
+            await message.answer(f'позиция ВК лотерей установлена на {num}')
+            await log(f'admin: n_vk_lots: {num}, ({message.from_user.username} - /set_vk_lots)\n')
+
         else:
             await message.answer("ошибка ввода, пример комманды: /set_vk_lots 100")
+    else:
+        await message.answer("Вы не админ этого бота, извините")
+        await stat_db.write('other', message.from_user.username)  # пишем статистику
+
+
+@dp.message_handler(commands=['set_siti_otm'])
+async def ad_rs(message: types.Message):
+    if str(message.from_user.id) in ADMINS:
+        num = message.text[14:].strip()
+        if num.isdigit() and 0 <= int(num) <= 30000:
+            await vars_db.write(['n_siti_otm'], [int(num)])
+            await message.answer(f'позиция siti_otm установлена на {num}')
+            await log(f'admin: n_siti_otm: {num}, ({message.from_user.username} - /set_siti_otm)\n')
+
+        else:
+            await message.answer("ошибка ввода, пример комманды: /set_vk_http 100")
     else:
         await message.answer("Вы не админ этого бота, извините")
         await stat_db.write('other', message.from_user.username)  # пишем статистику

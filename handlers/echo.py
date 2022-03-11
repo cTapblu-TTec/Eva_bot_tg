@@ -35,6 +35,8 @@ async def bot_echo(message: types.Message):
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         buttons = ["/admin", "/gena"]
         keyboard.add(*buttons)
+        buttons = ["/gor_stor", "/gor_shab"]
+        keyboard.add(*buttons)
         buttons = ["/otmetki", "/shablon"]
         keyboard.add(*buttons)
         buttons = ["/storis", "/vk"]
@@ -51,6 +53,8 @@ async def bot_echo(message: types.Message):
 
     else:
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        buttons = ["/gor_stor", "/gor_shab"]
+        keyboard.add(*buttons)
         buttons = ["/otmetki", "/shablon"]
         keyboard.add(*buttons)
         buttons = ["/storis", "/vk"]

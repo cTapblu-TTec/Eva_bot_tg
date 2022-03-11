@@ -2,6 +2,7 @@ from aiogram import types
 
 from data.config import ADMINS
 from loader import dp
+from utils.log import log
 from work_vs_db.db_statistic import stat_db
 from work_vs_db.db_users import users_db
 
@@ -27,6 +28,8 @@ async def adu(message: types.Message):
             await users_db.write(text, 'add_user', None)
 
             await message.reply("Добавлен пользователь - " f"{text}")
+            await log(f'admin: Добавлен пользователь - {text}, ({message.from_user.username} - /adUser)\n')
+
 
         else:
             await message.reply("Неверный формат - " f"{text}")
@@ -49,6 +52,8 @@ async def dlu(message: types.Message):
         if text in users:
             await users_db.write(text, 'dell_user', None)
             await message.reply("Пользователь удален - " f"{text}")
+            await log(f'admin: Пользователь удален - {text}, ({message.from_user.username} - /dlUser)\n')
+
         else:
             await message.reply("Пользователь не найден - " f"{text}")
 
