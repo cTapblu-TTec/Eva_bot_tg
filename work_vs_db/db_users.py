@@ -33,16 +33,15 @@ class UsersDatabase:
 
         u = await self.read('get_names_users', '')
         if not u:
-            f = open('users.txt', 'r')
-            u = f.readlines()
-            f.close()
+            with open('users.txt', 'r') as f:
+                u = f.readlines()
             query = """INSERT INTO users (user_name) VALUES ($1) ON CONFLICT (user_name) DO NOTHING;"""
             for user in u:
                 user = user.rstrip('\n')
                 async with self.pool.acquire(): await self.pool.execute(query, user)
             u = await self.read('get_names_users', '')
         self.users_names = u
-        self.users = {i: await users_db.read('n_zamen, n_last_otm, n_last_shabl', i) for i in self.users_names}
+        self.users = {i: await self.read('n_zamen, n_last_otm, n_last_shabl', i) for i in self.users_names}
         # for i in self.users:
         #     print(self.users[i].n_last_shabl)
 

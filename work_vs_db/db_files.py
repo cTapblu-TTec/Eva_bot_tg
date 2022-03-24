@@ -1,7 +1,6 @@
 import asyncpg
 
 from loader import dp
-from utils.get_text import s
 
 
 class FileDatabase:
@@ -26,7 +25,7 @@ class FileDatabase:
     # ______READ______
     async def read(self):
         query = 'SELECT * FROM files;'
-        async with self.pool.acquire(): F =  await self.pool.fetch(query)
+        async with self.pool.acquire(): F = await self.pool.fetch(query)
         if F:
             for i in F:
                 self.files[i['file_name']] = i['file_id']
@@ -51,9 +50,5 @@ async def download(file_name: str):
     file = await dp.bot.get_file(file_id)
     file_path = file.file_path
     await dp.bot.download_file(file_path, file_name)
-    # читаем файл если он из тех что хранятся в памяти
-    if file_name in ('otmetki.txt', 'polina.txt', 'name.txt'):
-        s.create_spiski((file_name,))
-
 
 files_db = FileDatabase()

@@ -1,15 +1,16 @@
 from data.config import LOG_CHAT
 from loader import dp
-from work_vs_db.db_statistic import stat_db
-from work_vs_db.db_vars import vars_db
+from work_vs_db.db_buttons import buttons_db
+from work_vs_db.db_stat import stat_db
 
 
 async def reset_statistics():
+    # NEW
     await stat_db.get_html()
-    file = open('statistic.html', 'rb')
-    await dp.bot.send_document(LOG_CHAT, file, caption='Статистика, счетчики сторис и шаблонов сброшены')
-    file.close()
-
-    await vars_db.write(['n_storis', 'n_shablon', 'n_get_id', 'n_get_http', 'n_get_club', 'n_get_lots', 'n_siti_get'],
-                        [1, 0, 1, 1, 1, 1, 1])
-    await stat_db.clear()
+    with open('statistic_vk.html', 'rb') as file:
+        await dp.bot.send_document(LOG_CHAT, file, caption='Статистика, счетчики сторис и шаблонов сброшены')
+    for button in buttons_db.buttons_names:
+        if buttons_db.buttons[button].num_block != -1:
+            await buttons_db.write(button, ['num_block'], [1])
+    await stat_db.dell()
+    await stat_db.create(None)

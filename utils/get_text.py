@@ -1,41 +1,16 @@
 import random
 
-from data.config import ADMINS
-from loader import dp
-
-
-class Spiski:
-    l_otmetki: list
-    l_polina: list
-    l_zamena: list
-    l_otm_vernuli: list
-
-    def __init__(self):
-        self.create_spiski(('otmetki.txt', 'polina.txt', 'name.txt'))
-
-    def create_spiski(self, files: tuple):
-
-        if 'otmetki.txt' in files:
-            with open('otmetki.txt', "r") as f:
-                self.l_otmetki = f.readlines()
-
-        if 'polina.txt' in files:
-            with open('polina.txt', "r") as f:
-                self.l_polina = f.readlines()
-
-        if 'name.txt' in files:
-            with open('name.txt', "r") as f:
-                self.l_zamena = f.readlines()
-
-        self.l_otm_vernuli = []
-
-
-s = Spiski()
+from utils.notify_admins import notify
 
 
 # Vid_Shabl(b, n_zamen, n_last_sabl)
-async def Vid_Shabl(b, c, N_50_sabl):
-    N_shabl = random.randint(0, len(s.l_polina) - 1)
+async def Vid_Shabl(c, N_50_sabl):
+    with open('polina.txt', 'r') as file:
+        l_shablon = file.readlines()
+    with open('name.txt', 'r') as file:
+        l_zamena = file.readlines()
+
+    N_shabl = random.randint(0, len(l_shablon) - 1)
 
     # проверка что этот шаблон не выдавался этому пользователю 50 последних раз
     if N_50_sabl:
@@ -52,16 +27,16 @@ async def Vid_Shabl(b, c, N_50_sabl):
         if len(list_shabl) >= 35: del list_shabl[0:len(list_shabl) - 35]  # удаляем лишнее
 
         while str(N_shabl) in list_shabl:
-            N_shabl = random.randint(0, len(s.l_polina) - 1)
+            N_shabl = random.randint(0, len(l_shablon) - 1)
         list_shabl.append(str(N_shabl))
         N_50_ = tuple(list_shabl)
     else:
         N_50_ = str(N_shabl)
 
-    text = str(s.l_polina[N_shabl])  # выдача нужного шаблона
+    text = str(l_shablon[N_shabl])  # выдача нужного шаблона
 
     est = False
-    for line in s.l_zamena:
+    for line in l_zamena:
         stroka = line.split(', ')  # делим строку на список
         for slovo in stroka:  # проверка строки
             slovo = slovo.strip()
@@ -74,41 +49,17 @@ async def Vid_Shabl(b, c, N_50_sabl):
                     text = text.replace(slovo, slovo2)  # замена слова
     if est: c = c + 1
     if c >= 10: c = 0
-    b += 1  # просто счетчик выданных шаблонов
-    return text, b, c, N_50_
-
-
-# k - сколько выдать отметок
-async def Vid_Otmetok(text, a, k, l_otm_vernuli):
-    n_last_otm = ()
-    use = True
-    for i in range(k):
-        if len(l_otm_vernuli) > 0:
-            if text != '' and text[-1] != '\n': text = text + '\n'
-            n_last_otm += (l_otm_vernuli[0],)
-            text = text + str(l_otm_vernuli.pop(0))
-        else:
-            if a >= len(s.l_otmetki):
-                use = False
-            if use:
-                if text != '' and text[-1] != '\n': text = text + '\n'
-                text = text + s.l_otmetki[a]
-                n_last_otm += (s.l_otmetki[a],)
-                a += 1
-    if not use:
-        text += '\nсписок отметок исчерпан'
-        if n_last_otm == (): n_last_otm = 0
-        for admin in ADMINS:
-            await dp.bot.send_message(admin, "файл otmetki.txt исчерпан")
-    return text, a, n_last_otm, l_otm_vernuli
+    return text, c, N_50_
 
 
 async def get_vk_text(n_f_line: int, n_get: int, k: int, file: str):
     use = True
-    f = open(file, 'r')
-    linesf = f.readlines()
-    f.close()
-
+    try:
+        with open(file, 'r') as f:
+            linesf = f.readlines()
+    except Exception:
+        await notify(f'Файл {file} не читается')
+        return f'Файл {file} не читается', n_f_line, n_get
     text = ''
     for i in range(k):
         if n_f_line >= len(linesf):
@@ -119,10 +70,10 @@ async def get_vk_text(n_f_line: int, n_get: int, k: int, file: str):
             n_f_line += 1
     if n_get != -1:
         text = f'{n_get}\n{text}'
+        n_get += 1
 
     if not use:
         text += '\nсписок исчерпан'
-        for admin in ADMINS:
-            await dp.bot.send_message(admin, "файл vk исчерпан, смотри /st")
+        await notify(f"{file} исчерпан")
 
-    return text, n_f_line, n_get + 1
+    return text, n_f_line, n_get
