@@ -7,7 +7,7 @@ from work_vs_db.db_users import users_db
 
 
 @dp.message_handler(commands=['adUser'])
-async def adu(message: types.Message):
+async def adm_ad_user(message: types.Message):
     user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
@@ -38,7 +38,7 @@ async def adu(message: types.Message):
 
 
 @dp.message_handler(commands=['dlUser'])
-async def dlu(message: types.Message):
+async def adm_dell_user(message: types.Message):
     user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")

@@ -6,7 +6,7 @@ from work_vs_db.db_buttons import buttons_db
 
 
 @dp.message_handler(text=buttons_db.buttons_groups)
-async def bot_echo(message: types.Message):
+async def create_buttons(message: types.Message):
     user = await prover(message, 'other')  # проверяем статус пользователя
     if user == "guest": return
 
@@ -21,6 +21,10 @@ async def bot_echo(message: types.Message):
     if user == 'admin':
         buttons = ['/admin', '/st', '/stUsers']
         keyboard.add(*buttons)
+
+    if message.from_user.username == 'dariasuv':
+        buttons = '/st'
+        keyboard.add(buttons)
 
     # добавляем кнопки группы
     buttons = []

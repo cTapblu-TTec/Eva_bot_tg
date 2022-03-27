@@ -7,7 +7,7 @@ from work_vs_db.db_filess import f_db
 @dataclass()
 class Button:
     name: str
-    group_buttons: str = 'v'
+    group_buttons: str = 'a'
     work_file: str = None
     num_block: int = 1
     size_blok: int = 3
@@ -78,7 +78,6 @@ class ButtonsDatabase:
                 if i not in buttons_groups:
                     buttons_groups.append(i['group_buttons'])
             return buttons_groups
-
 
         else:
             # 'name, work_file, num_block, size_blok, shablon_file, active'

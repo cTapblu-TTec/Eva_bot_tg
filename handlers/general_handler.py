@@ -1,17 +1,18 @@
 from aiogram import types
 
+from filters.chek_buttons import ChekButtons
 from loader import dp
 from utils.Proverka import prover
-from utils.get_text import get_vk_text, Vid_Shabl
+from utils.gena import gennadij
+from utils.get_text import get_vk_text, get_template
 from utils.log import log
 from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_filess import f_db
-# РАБОТА С ФАЙЛАМИ
 from work_vs_db.db_users import users_db
 
 
-@dp.message_handler(text=buttons_db.buttons_names)
-async def stor(message: types.Message):
+@dp.message_handler(ChekButtons())
+async def work_buttons(message: types.Message):
     user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
     if user == "guest": return
 
@@ -19,6 +20,7 @@ async def stor(message: types.Message):
     button = buttons_db.buttons[button_name]
     shablon = ''
     otmetki = ''
+    gena = ''
 
     # ОТМЕТКИ
     if button.work_file is not None:
@@ -31,14 +33,18 @@ async def stor(message: types.Message):
         otmetki, num_line, num_block = await get_vk_text(f.num_line, button.num_block, button.size_blok, f.name)
 
     # ШАБЛОН
-    if button.shablon_file is not None:
+    if button.shablon_file is not None and button.shablon_file != 'gena.txt':
         u = users_db.users[message.from_user.username]
-        shablon, u.n_zamen, u.n_last_shabl = \
-            await Vid_Shabl(u.n_zamen, u.n_last_shabl)  # получаем шаблон
-    text = shablon + otmetki
+        shablon, u.n_zamen, u.n_last_shabl = await get_template(u.n_zamen, u.n_last_shabl, button.shablon_file)
 
+    # ГЕНА
+    if button.shablon_file == 'gena.txt':
+        gena = await gennadij.get_text()
+
+    text = shablon + gena + otmetki
     await message.answer(text)
 
+    # если с отметками
     if button.work_file is not None:
         await f_db.write(file_name, ['num_line'], [num_line])
         await buttons_db.write(button_name, ['num_block'], [num_block])

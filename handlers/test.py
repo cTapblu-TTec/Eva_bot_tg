@@ -5,7 +5,7 @@ from loader import dp
 
 
 @dp.message_handler(commands=['test'])
-async def ad_rs(message: types.Message):
+async def test(message: types.Message):
 
     if str(message.from_user.id) in ADMINS:
         print('test')

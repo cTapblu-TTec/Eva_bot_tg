@@ -5,6 +5,7 @@ from pytz import timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from data.config import HEROKU, DATABASE_URL
+from filters.chek_buttons import ChekButtons
 from loader import dp
 from utils.notify_admins import on_startup_notify
 from utils.set_bot_commands import set_default_commands
@@ -51,6 +52,7 @@ async def main():
     await buttons_db.create(pool)
 
     # _________START BOT________
+    dp.filters_factory.bind(ChekButtons)
     import handlers
     await on_startup()
     await dp.skip_updates()

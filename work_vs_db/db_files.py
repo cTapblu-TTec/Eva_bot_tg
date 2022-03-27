@@ -1,6 +1,7 @@
 import asyncpg
 
 from loader import dp
+from utils.notify_admins import notify
 
 
 class FileDatabase:
@@ -45,10 +46,14 @@ class FileDatabase:
 
 
 async def download(file_name: str):
+    dir = 'dir_files/'
     file_id = files_db.files[file_name]  # берем id из базы
     # получаем файл по id из телеграмма
-    file = await dp.bot.get_file(file_id)
-    file_path = file.file_path
-    await dp.bot.download_file(file_path, file_name)
+    try:
+        file = await dp.bot.get_file(file_id)
+        file_path = file.file_path
+        await dp.bot.download_file(file_path, dir+file_name)
+    except Exception:
+        await notify(f'Не удалось скачать файл с телеграмма: {file_name}')
 
 files_db = FileDatabase()

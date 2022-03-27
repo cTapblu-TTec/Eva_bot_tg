@@ -6,13 +6,13 @@ from loader import dp
 
 # Эхо хендлер, куда летят текстовые сообщения без указанного состояния
 @dp.message_handler(state=None)
-async def bot_echo(message: types.Message):
+async def echo(message: types.Message):
     user = await prover(message, 'other')  # проверяем статус пользователя
     if user == "guest": return
 
-    text_message = "для кнопок инсты введи - i\n" \
-                   "для кнопок ВК, введи - v\n"
+    text_message = "для работы в чате, введи - Чат\n" \
+                   "для самостоятельной работы введи - Бот\n"
     if user == 'admin':
         text_message += "\n/admin - админские команды\n" \
-                        "д - Дашины кнопки"
+                        "Даша - Дашины кнопки"
     await message.answer(text_message)

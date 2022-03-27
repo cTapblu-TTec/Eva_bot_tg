@@ -4,11 +4,15 @@ from utils.notify_admins import notify
 
 
 # Vid_Shabl(b, n_zamen, n_last_sabl)
-async def Vid_Shabl(c, N_50_sabl):
-    with open('polina.txt', 'r') as file:
-        l_shablon = file.readlines()
-    with open('name.txt', 'r') as file:
-        l_zamena = file.readlines()
+async def get_template(c, N_50_sabl, file_template):
+    try:
+        with open('dir_files/'+file_template, 'r') as file:
+            l_shablon = file.readlines()
+        with open('dir_files/name.txt', 'r') as file:
+            l_zamena = file.readlines()
+    except Exception:
+        await notify(f'Файл {file_template} не читается')
+        return f'Файл {file_template} не читается', c, N_50_sabl
 
     N_shabl = random.randint(0, len(l_shablon) - 1)
 
@@ -55,7 +59,7 @@ async def Vid_Shabl(c, N_50_sabl):
 async def get_vk_text(n_f_line: int, n_get: int, k: int, file: str):
     use = True
     try:
-        with open(file, 'r') as f:
+        with open('dir_files/'+file, 'r') as f:
             linesf = f.readlines()
     except Exception:
         await notify(f'Файл {file} не читается')

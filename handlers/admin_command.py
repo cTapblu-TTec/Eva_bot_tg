@@ -10,7 +10,7 @@ from work_vs_db.db_users import users_db
 
 
 @dp.message_handler(commands=['admin'])
-async def ad_m(message: types.Message):
+async def adm_commands(message: types.Message):
     user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
@@ -30,7 +30,7 @@ async def ad_m(message: types.Message):
 
 
 @dp.message_handler(commands=['users'])
-async def dlu(message: types.Message):
+async def adm_users(message: types.Message):
     user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
@@ -43,7 +43,7 @@ async def dlu(message: types.Message):
 
 
 @dp.message_handler(commands=['st'])
-async def st(message: types.Message):
+async def adm_stat(message: types.Message):
     user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
     if user != "admin" and message.from_user.username != 'dariasuv':
         await message.answer("Вы не админ этого бота, извините")
@@ -51,7 +51,7 @@ async def st(message: types.Message):
 
     stat = ''
     for file in f_db.files:
-        with open(file, "r") as f:
+        with open('dir_files/'+file, "r") as f:
             len_ = len(f.readlines())
         stat += f'{f_db.files[file].name} -- {f_db.files[file].num_line} из {len_}\n'
     await message.answer(stat)
@@ -59,7 +59,7 @@ async def st(message: types.Message):
 
 
 @dp.message_handler(commands=['stUsers'])
-async def stu(message: types.Message):
+async def adm_stat_users(message: types.Message):
     user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
@@ -72,7 +72,7 @@ async def stu(message: types.Message):
 
 
 @dp.message_handler(commands=['reStUr'])
-async def ad_rs(message: types.Message):
+async def adm_reset_stat_users(message: types.Message):
     user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
@@ -88,7 +88,7 @@ async def ad_rs(message: types.Message):
 
 
 @dp.message_handler(commands=['files'])
-async def ad_m(message: types.Message):
+async def adm_files(message: types.Message):
     user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
@@ -108,7 +108,7 @@ async def ad_m(message: types.Message):
 
 
 @dp.message_handler(commands=['set'])
-async def ad_so(message: types.Message):
+async def adm_set_files(message: types.Message):
     user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
@@ -123,7 +123,7 @@ async def ad_so(message: types.Message):
                 if zapros[2].isdigit:
                     await f_db.write(zapros[0], [zapros[1]], [int(zapros[2])])
                     await message.answer("Значение установлено, для проверки нажмите /st")
-                    await log(f'admin: {zapros[0]}--{zapros[1]}--{zapros[2]}, ({message.from_user.username} - /set)\n')
+                    await log(f'admin: {message.text}, ({message.from_user.username})\n')
                 else: ass = True
             else: ass = True
         else: ass = True
@@ -135,7 +135,7 @@ async def ad_so(message: types.Message):
 
 
 @dp.message_handler(commands=['set_b'])
-async def ad_so(message: types.Message):
+async def adm_set_butt(message: types.Message):
     user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
@@ -151,7 +151,7 @@ async def ad_so(message: types.Message):
                     if zapros[2].isdigit: zapros[2] = int(zapros[2])
                     await buttons_db.write(zapros[0], [zapros[1]], [zapros[2]])
                     await message.answer("Значение установлено")
-                    await log(f'admin: {zapros[0]}--{zapros[1]}--{zapros[2]}, ({message.from_user.username} - /set_b)\n')
+                    await log(f'admin: {message.text}, ({message.from_user.username})\n')
                 else: ass = True
             else: ass = True
         else: ass = True
@@ -164,7 +164,9 @@ async def ad_so(message: types.Message):
 
 
 @dp.message_handler(commands=['read_bd'])
-async def ad_m(message: types.Message):
+async def adm_read_bd(message: types.Message):
+    #from handlers.vkontakte2 import work_buttons
+
     user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
@@ -172,5 +174,12 @@ async def ad_m(message: types.Message):
 
     await f_db.create(None)
     await buttons_db.create(None)
+    #dp.register_message_handler(work_buttons, text=buttons_db.buttons_groups)
+    #print(3)
+    #print(dp.message_handlers.handlers[0])
+    #dp.register_message_handler(work_buttons, text=buttons_db.buttons_names)
+    #dp.message_handlers.handlers[0].filters(text=buttons_db.buttons_names)
+    #print(dp.message_handlers.handlers[0])
+
     await message.answer("Данные обновлены из базы данных")
     await log(f'admin: {message.text}, ({message.from_user.username})\n')

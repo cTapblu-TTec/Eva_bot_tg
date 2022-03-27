@@ -17,7 +17,7 @@ class SlovDB:
         self.read()
 
     def read(self):
-        with open('db.txt', 'r') as f_db:
+        with open('dir_files/gena.txt', 'r') as f_db:
             lf = f_db.readlines()
         k = 1
         pk = 1
@@ -91,7 +91,7 @@ class Predlojenie:
         self.last_s.append(text)
         if len(self.last_s) >= 100: del self.last_s[0:len(self.last_s) - 100]  # удаляем лишнее
 
-        return text
+        return text + '\n'
 
     async def slojenie_slov(self):
         t_l = [self.opredelenie.text, self.podlezashee.text, self.obstoyatelstvo.text, self.skazuemoe.text,
