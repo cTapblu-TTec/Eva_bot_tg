@@ -2,18 +2,19 @@ from aiogram import types
 
 from filters.chek_buttons import ChekButtons
 from loader import dp
-from utils.Proverka import prover
+from utils.face_control import control
 from utils.gena import gennadij
 from utils.get_text import get_vk_text, get_template
 from utils.log import log
 from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_filess import f_db
+from work_vs_db.db_stat import stat_db
 from work_vs_db.db_users import users_db
 
 
 @dp.message_handler(ChekButtons())
 async def work_buttons(message: types.Message):
-    user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
+    user = await control(message)  # проверяем статус пользователя
     if user == "guest": return
 
     button_name = message.text
@@ -29,7 +30,7 @@ async def work_buttons(message: types.Message):
 
         # size_blok - сколько выдать отметок
         # button: name, work_file, num_block, size_blok, shablon_file, active
-        # file: name, num_line, num_block, size_blok, file_id, next_file_id
+        # file: name, num_line, file_id, next_file_id
         otmetki, num_line, num_block = await get_vk_text(f.num_line, button.num_block, button.size_blok, f.name)
 
     # ШАБЛОН
@@ -38,7 +39,7 @@ async def work_buttons(message: types.Message):
         shablon, u.n_zamen, u.n_last_shabl = await get_template(u.n_zamen, u.n_last_shabl, button.shablon_file)
 
     # ГЕНА
-    if button.shablon_file == 'gena.txt':
+    elif button.shablon_file == 'gena.txt':
         gena = await gennadij.get_text()
 
     text = shablon + gena + otmetki
@@ -50,4 +51,5 @@ async def work_buttons(message: types.Message):
         await buttons_db.write(button_name, ['num_block'], [num_block])
         await log(f'№ строки {message.text}: {f.num_line}, ({message.from_user.username})\n')
     else:
-        await log(f'{message.text}, ({message.from_user.username})\n')
+        await log(f'{message.text}, ({message.from_user.username})\n')  # пишем лог
+    await stat_db.write(message.text, message.from_user.username)  # пишем статистику

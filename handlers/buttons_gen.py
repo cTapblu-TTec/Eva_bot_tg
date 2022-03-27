@@ -1,13 +1,13 @@
 from aiogram import types
 
-from utils.Proverka import prover
+from utils.face_control import control
 from loader import dp
 from work_vs_db.db_buttons import buttons_db
 
 
 @dp.message_handler(text=buttons_db.buttons_groups)
 async def create_buttons(message: types.Message):
-    user = await prover(message, 'other')  # проверяем статус пользователя
+    user = await control(message)  # проверяем статус пользователя
     if user == "guest": return
 
     # создаем список кнопок из нужной группы

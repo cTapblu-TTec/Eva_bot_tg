@@ -93,7 +93,7 @@ class StatDatabase:
 
         text = head + columns + table + close
 
-        file = open('statistic_vk.html', 'w', encoding='utf-8')
+        file = open('statistic.html', 'w', encoding='utf-8')
         file.write(text)
         file.close()
 

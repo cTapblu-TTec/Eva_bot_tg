@@ -16,6 +16,7 @@ class FileDatabase:
                 (
                     file_name character varying(30) COLLATE pg_catalog."default" NOT NULL,
                     file_id character varying NOT NULL,
+                    next_file_id varchar DEFAULT NULL,
                     CONSTRAINT "Files_pkey" PRIMARY KEY (file_name)
                 ); """
         async with self.pool.acquire(): await self.pool.execute(query)

@@ -1,7 +1,7 @@
 from aiogram import types
 
 from loader import dp
-from utils.Proverka import prover
+from utils.face_control import control
 from utils.log import log
 from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_filess import f_db
@@ -11,7 +11,7 @@ from work_vs_db.db_users import users_db
 
 @dp.message_handler(commands=['admin'])
 async def adm_commands(message: types.Message):
-    user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
+    user = await control(message)  # проверяем статус пользователя
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
         return
@@ -31,49 +31,54 @@ async def adm_commands(message: types.Message):
 
 @dp.message_handler(commands=['users'])
 async def adm_users(message: types.Message):
-    user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
+    user = await control(message)  # проверяем статус пользователя
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
         return
 
     users_names = users_db.users_names
+    num = len(users_names)
     users_names.sort(key=str.lower)
-    await message.answer("\n".join(users_names))
+    users = "\n".join(users_names)
+    await message.answer(f'Всего {num} пользователей:\n{users}')
     await log(f'admin: {message.text}, ({message.from_user.username})\n')
 
 
 @dp.message_handler(commands=['st'])
 async def adm_stat(message: types.Message):
-    user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
+    user = await control(message)  # проверяем статус пользователя
     if user != "admin" and message.from_user.username != 'dariasuv':
         await message.answer("Вы не админ этого бота, извините")
         return
 
     stat = ''
     for file in f_db.files:
-        with open('dir_files/'+file, "r") as f:
-            len_ = len(f.readlines())
-        stat += f'{f_db.files[file].name} -- {f_db.files[file].num_line} из {len_}\n'
+        try:
+            with open('dir_files/'+file, "r") as f:
+                len_ = len(f.readlines())
+            stat += f'{f_db.files[file].name} -- {f_db.files[file].num_line} из {len_}\n'
+        except Exception:
+            await message.answer(f'файл {file} не найден')
     await message.answer(stat)
     await log(f'admin: {message.text}, ({message.from_user.username})\n')
 
 
 @dp.message_handler(commands=['stUsers'])
 async def adm_stat_users(message: types.Message):
-    user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
+    user = await control(message)  # проверяем статус пользователя
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
         return
 
     await stat_db.get_html()
-    with open('statistic_vk.html', 'rb') as file:
+    with open('statistic.html', 'rb') as file:
         await message.reply_document(file)
     await log(f'admin: {message.text}, ({message.from_user.username})\n')
 
 
 @dp.message_handler(commands=['reStUr'])
 async def adm_reset_stat_users(message: types.Message):
-    user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
+    user = await control(message)  # проверяем статус пользователя
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
         return
@@ -89,14 +94,15 @@ async def adm_reset_stat_users(message: types.Message):
 
 @dp.message_handler(commands=['files'])
 async def adm_files(message: types.Message):
-    user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
+    user = await control(message)  # проверяем статус пользователя
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
         return
+    files = ".txt, ".join(f_db.files_names)
     await message.answer("- Вы можете отправить боту новые файлы для работы с ними. "
                          "Бот вернет вам взамен новых старые с информацией сколько строк отработано.\n"
-                         "- Заменить можно следующие файлы: otmetki.txt, vk_id.txt, vk_club.txt, vk_lots.txt,"
-                         " vk_http.txt, polina.txt, name.txt\n"
+                         "- Заменить можно следующие файлы: "
+                         f"{files}.txt\n"
                          "- Если после замены файла бот стал неправильно работать, отправьте обратно боту старый "
                          "файл, разберитесь что не так с вашим файлом и снова попробуйте его загрузить.\n"
                          "- После успешной загрузки и проверки работы бота не забудьте сбросить соответствующую "
@@ -109,7 +115,7 @@ async def adm_files(message: types.Message):
 
 @dp.message_handler(commands=['set'])
 async def adm_set_files(message: types.Message):
-    user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
+    user = await control(message)  # проверяем статус пользователя
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
         return
@@ -136,7 +142,7 @@ async def adm_set_files(message: types.Message):
 
 @dp.message_handler(commands=['set_b'])
 async def adm_set_butt(message: types.Message):
-    user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
+    user = await control(message)  # проверяем статус пользователя
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
         return
@@ -165,21 +171,15 @@ async def adm_set_butt(message: types.Message):
 
 @dp.message_handler(commands=['read_bd'])
 async def adm_read_bd(message: types.Message):
-    #from handlers.vkontakte2 import work_buttons
-
-    user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
+    user = await control(message)  # проверяем статус пользователя
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
         return
 
     await f_db.create(None)
     await buttons_db.create(None)
-    #dp.register_message_handler(work_buttons, text=buttons_db.buttons_groups)
-    #print(3)
-    #print(dp.message_handlers.handlers[0])
-    #dp.register_message_handler(work_buttons, text=buttons_db.buttons_names)
-    #dp.message_handlers.handlers[0].filters(text=buttons_db.buttons_names)
-    #print(dp.message_handlers.handlers[0])
 
     await message.answer("Данные обновлены из базы данных")
     await log(f'admin: {message.text}, ({message.from_user.username})\n')
+
+    # dp.register_message_handler(work_buttons, text=buttons_db.buttons_names)

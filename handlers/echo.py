@@ -1,13 +1,13 @@
 from aiogram import types
 
-from utils.Proverka import prover
+from utils.face_control import control
 from loader import dp
 
 
 # Эхо хендлер, куда летят текстовые сообщения без указанного состояния
 @dp.message_handler(state=None)
 async def echo(message: types.Message):
-    user = await prover(message, 'other')  # проверяем статус пользователя
+    user = await control(message)  # проверяем статус пользователя
     if user == "guest": return
 
     text_message = "для работы в чате, введи - Чат\n" \

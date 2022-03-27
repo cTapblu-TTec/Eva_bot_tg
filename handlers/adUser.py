@@ -1,14 +1,14 @@
 from aiogram import types
 
 from loader import dp
-from utils.Proverka import prover
+from utils.face_control import control
 from utils.log import log
 from work_vs_db.db_users import users_db
 
 
 @dp.message_handler(commands=['adUser'])
 async def adm_ad_user(message: types.Message):
-    user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
+    user = await control(message)  # проверяем статус пользователя
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
         return
@@ -39,7 +39,7 @@ async def adm_ad_user(message: types.Message):
 
 @dp.message_handler(commands=['dlUser'])
 async def adm_dell_user(message: types.Message):
-    user = await prover(message, message.text)  # проверяем статус пользователя и пишем статистику
+    user = await control(message)  # проверяем статус пользователя
     if user != "admin":
         await message.answer("Вы не админ этого бота, извините")
         return

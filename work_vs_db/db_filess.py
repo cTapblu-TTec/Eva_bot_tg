@@ -6,8 +6,6 @@ from dataclasses import dataclass
 class File:
     name: str
     num_line: int
-    file_id: str
-    next_file_id: str
     active: int
     length: int
 
@@ -27,8 +25,6 @@ class FilesDatabase:
                 (
                     name character varying(30) COLLATE pg_catalog."default" NOT NULL,
                     num_line smallint NOT NULL DEFAULT 0,
-                    file_id varchar DEFAULT NULL,
-                    next_file_id varchar DEFAULT NULL,
                     active smallint NOT NULL DEFAULT 1,
                     length smallint DEFAULT NULL,
                     CONSTRAINT filess_pkey PRIMARY KEY (name)
@@ -75,8 +71,6 @@ class FilesDatabase:
                 file = File(
                             name=file_name,
                             num_line=u[0]['num_line'],
-                            file_id=u[0]['file_id'],
-                            next_file_id=u[0]['next_file_id'],
                             active=u[0]['active'],
                             length=u[0]['length']
                             )
@@ -114,14 +108,6 @@ class FilesDatabase:
                 async with self.pool.acquire(): await self.pool.execute(query, file_name)
                 if stolbec[i] == 'num_line':
                     self.files[file_name].num_line = values[i]
-                if stolbec[i] == 'num_block':
-                    self.files[file_name].num_block = values[i]
-                if stolbec[i] == 'size_blok':
-                    self.files[file_name].size_blok = values[i]
-                if stolbec[i] == 'file_id':
-                    self.files[file_name].file_id = values[i]
-                if stolbec[i] == 'next_file_id':
-                    self.files[file_name].next_file_id = values[i]
                 if stolbec[i] == 'length':
                     self.files[file_name].length = values[i]
 

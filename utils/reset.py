@@ -7,7 +7,7 @@ from work_vs_db.db_stat import stat_db
 async def reset_statistics():
     # NEW
     await stat_db.get_html()
-    with open('statistic_vk.html', 'rb') as file:
+    with open('statistic.html', 'rb') as file:
         await dp.bot.send_document(LOG_CHAT, file, caption='Статистика, счетчики сторис и шаблонов сброшены')
     for button in buttons_db.buttons_names:
         if buttons_db.buttons[button].num_block != -1:
