@@ -1,11 +1,12 @@
 from aiogram import types
 
+from filters.chek_buttons import ChekGroupButtons
 from utils.face_control import control
 from loader import dp
 from work_vs_db.db_buttons import buttons_db
 
 
-@dp.message_handler(text=buttons_db.buttons_groups)
+@dp.message_handler(ChekGroupButtons())
 async def create_buttons(message: types.Message):
     user = await control(message)  # проверяем статус пользователя
     if user == "guest": return
@@ -13,8 +14,24 @@ async def create_buttons(message: types.Message):
     # создаем список кнопок из нужной группы
     button_list = []
     for button in buttons_db.buttons:
-        if buttons_db.buttons[button].group_buttons == message.text:
-            button_list.append(button)
+        # создаем список групп если кнопка состоит не в одной группе
+        list_grups = ''
+        if ',' in buttons_db.buttons[button].group_buttons:
+            list_grups = buttons_db.buttons[button].group_buttons
+            list_grups = list_grups.replace(' ', '')
+            list_grups = list_grups.split(',')
+
+        if buttons_db.buttons[button].group_buttons == message.text or message.text in list_grups:
+            # админ
+            if user == 'admin':
+                button_list.append(button)
+            # кнопка не скрыта, список юзеров пуст
+            elif buttons_db.buttons[button].hidden == 0 and buttons_db.buttons[button].users is None:
+                button_list.append(button)
+            # юзер в списке кнопки
+            elif buttons_db.buttons[button].users is not None and \
+                    message.from_user.username in buttons_db.buttons[button].users:
+                button_list.append(button)
 
     # добавляем админские кнопки
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)

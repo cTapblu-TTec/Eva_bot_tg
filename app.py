@@ -5,14 +5,15 @@ from pytz import timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from data.config import HEROKU, DATABASE_URL
-from filters.chek_buttons import ChekButtons
+from filters.chek_buttons import ChekButtons, ChekGroupButtons
 from loader import dp
 from utils.notify_admins import on_startup_notify
 from utils.set_bot_commands import set_default_commands
 from utils.reset import reset_statistics
 from work_vs_db.db_buttons import buttons_db
-from work_vs_db.db_files import files_db
+from work_vs_db.db_files_id import files_id_db
 from work_vs_db.db_filess import f_db
+from work_vs_db.db_groups_buttons import groups_db
 from work_vs_db.db_stat import stat_db
 from work_vs_db.db_users import users_db
 
@@ -46,13 +47,15 @@ async def main():
     # _________POOL________
     pool = await create_pool()
     await users_db.create(pool)
-    await files_db.create(pool)
+    await files_id_db.create(pool)
     await f_db.create(pool)
     await stat_db.create(pool)
     await buttons_db.create(pool)
+    await groups_db.create(pool)
 
     # _________START BOT________
     dp.filters_factory.bind(ChekButtons)
+    dp.filters_factory.bind(ChekGroupButtons)
     import handlers
     await on_startup()
     await dp.skip_updates()

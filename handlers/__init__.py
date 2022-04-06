@@ -5,4 +5,5 @@ from . import h_gena
 from . import adUser
 from . import admin_command
 from . import buttons_gen
+from . import help
 from . import echo

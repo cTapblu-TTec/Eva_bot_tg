@@ -3,7 +3,7 @@ from aiogram import types
 from loader import dp
 from utils.face_control import control
 from utils.log import log
-from work_vs_db.db_files import files_db, download
+from work_vs_db.db_files_id import files_id_db, download
 from work_vs_db.db_filess import f_db
 
 
@@ -24,8 +24,8 @@ async def adm_change_file(message: types.Message):
                                                         f'{f_db.files[message.document.file_name].num_line})'
                                                         '\nФайл заменен')
         except Exception:
-            await log(f'admin: Старый файл не найден - {message.document.file_name}, ({message.from_user.username})\n')
             await message.reply('Файл загружен')
+            await log(f'admin: Старый файл не найден - {message.document.file_name}, ({message.from_user.username})\n')
 
         # -= СКАЧИВАЕМ НОВЫЙ ФАЙЛ:
         try:
@@ -34,12 +34,11 @@ async def adm_change_file(message: types.Message):
                 length = len(f.readlines())  # проверяем что файл читается
             if length > 20000:
                 await message.reply('Файл очень большой, бот будет тормозить, рекомендуемый размер - 10000 строк')
-            await files_db.write(message.document.file_name,
-                                 message.document.file_id)  # сохраняем новый id файла
+            # сохраняем новый id файла
+            await files_id_db.write(message.document.file_name, message.document.file_id)
 
-            await f_db.write(message.document.file_name, ['file_id', 'length'], [message.document.file_id, length])
-
-            await log(f'admin: Заменен файл - {message.document.file_name}, '
+            await message.reply(f'Команда для сброса:\n/set {message.document.file_name} num_line 0')
+            await log(f'admin: Загружен файл - {message.document.file_name}, '
                       f'({message.from_user.username})\n')
 
         except Exception:

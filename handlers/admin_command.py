@@ -5,6 +5,7 @@ from utils.face_control import control
 from utils.log import log
 from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_filess import f_db
+from work_vs_db.db_groups_buttons import groups_db
 from work_vs_db.db_stat import stat_db
 from work_vs_db.db_users import users_db
 
@@ -22,10 +23,27 @@ async def adm_commands(message: types.Message):
                          "/adUser ник - добавить пользователя\n"
                          "/dlUser ник - удалить пользователя\n"
                          "/users - вывести список пользователей\n"
+                         "/buttons - список кнопок и файлов\n"
                          "/set - тонкая настройка файлов\n"
                          "/set_b - тонкая настройка кнопок\n"
                          "/read_bd - чтение БД после корректировки\n"
                          "/files - инструкция по отправке файла")
+    await log(f'admin: {message.text}, ({message.from_user.username})\n')
+
+
+@dp.message_handler(commands=['buttons'])
+async def adm_users(message: types.Message):
+    user = await control(message)  # проверяем статус пользователя
+    if user != "admin":
+        await message.answer("Вы не админ этого бота, извините")
+        return
+
+    text = 'имя - отметки - шаблоны\n\n'
+    for button in buttons_db.buttons:
+        text += f"{buttons_db.buttons[button].name} - {buttons_db.buttons[button].work_file}" \
+                f" - {buttons_db.buttons[button].shablon_file}\n"
+
+    await message.answer(text)
     await log(f'admin: {message.text}, ({message.from_user.username})\n')
 
 
@@ -178,6 +196,7 @@ async def adm_read_bd(message: types.Message):
 
     await f_db.create(None)
     await buttons_db.create(None)
+    await groups_db.create(None)
 
     await message.answer("Данные обновлены из базы данных")
     await log(f'admin: {message.text}, ({message.from_user.username})\n')

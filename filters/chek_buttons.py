@@ -9,3 +9,10 @@ class ChekButtons(BoundFilter):
         if message.text in buttons_db.buttons_names:
             return True
         return False
+
+
+class ChekGroupButtons(BoundFilter):
+    async def check(self, message: types.Message):
+        if message.text in buttons_db.buttons_groups:
+            return True
+        return False

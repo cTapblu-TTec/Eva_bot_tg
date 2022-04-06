@@ -14,6 +14,9 @@ class Button:
     shablon_file: str = None
     active: int = 1
     sort: int = 1
+    hidden: int = 0
+    users: str = None  # список допущенных
+    specification: str = 'Описание кнопки'
 
 
 class ButtonsDatabase:
@@ -37,11 +40,20 @@ class ButtonsDatabase:
                     shablon_file varchar DEFAULT NULL,
                     active smallint NOT NULL DEFAULT 1,
                     sort smallint NOT NULL DEFAULT 1,
+                    hidden smallint NOT NULL DEFAULT 0,
+                    users varchar DEFAULT NULL,
+                    specification varchar DEFAULT 'Описание кнопки',
                     CONSTRAINT buttons_pkey PRIMARY KEY (name)
                 );
                     """
-        async with self.pool.acquire():
-            await self.pool.execute(query)
+        async with self.pool.acquire(): await self.pool.execute(query)
+
+        query = """
+                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS hidden smallint DEFAULT 0;
+                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS users varchar DEFAULT NULL;
+                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS specification varchar DEFAULT 'Описание кнопки';
+                """
+        async with self.pool.acquire(): await self.pool.execute(query)
 
         buttons_names = await self.read('get_names_buttons', '')
         if not buttons_names:
@@ -75,8 +87,16 @@ class ButtonsDatabase:
                 group_names = await self.pool.fetch(query)
             buttons_groups = []
             for i in group_names:
-                if i not in buttons_groups:
-                    buttons_groups.append(i['group_buttons'])
+                if i['group_buttons'] not in buttons_groups:
+                    if ',' in i['group_buttons']:
+                        list_grups = i['group_buttons']
+                        list_grups = list_grups.replace(' ', '')
+                        list_grups = list_grups.split(',')
+                        for grup in list_grups:
+                            if grup not in buttons_groups:
+                                buttons_groups.append(grup)
+                    else:
+                        buttons_groups.append(i['group_buttons'])
             return buttons_groups
 
         else:
@@ -95,7 +115,10 @@ class ButtonsDatabase:
                             size_blok=butt['size_blok'],
                             shablon_file=butt['shablon_file'],
                             active=butt['active'],
-                            sort=butt['sort']
+                            sort=butt['sort'],
+                            hidden=butt['hidden'],
+                            users=butt['users'],
+                            specification=butt['specification']
                             )
             return button
 
