@@ -11,6 +11,7 @@ class Button:
     work_file: str = None
     num_block: int = 1
     size_blok: int = 3
+    name_block: str = None
     shablon_file: str = None
     active: int = 1
     sort: int = 1
@@ -37,6 +38,7 @@ class ButtonsDatabase:
                     work_file varchar DEFAULT NULL,
                     num_block smallint NOT NULL DEFAULT 1,
                     size_blok smallint NOT NULL DEFAULT 3,
+                    name_block varchar DEFAULT NULL,
                     shablon_file varchar DEFAULT NULL,
                     active smallint NOT NULL DEFAULT 1,
                     sort smallint NOT NULL DEFAULT 1,
@@ -49,9 +51,7 @@ class ButtonsDatabase:
         async with self.pool.acquire(): await self.pool.execute(query)
 
         query = """
-                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS hidden smallint DEFAULT 0;
-                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS users varchar DEFAULT NULL;
-                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS specification varchar DEFAULT 'Описание кнопки';
+                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS name_block varchar DEFAULT NULL;
                 """
         async with self.pool.acquire(): await self.pool.execute(query)
 
@@ -113,6 +113,7 @@ class ButtonsDatabase:
                             work_file=butt['work_file'],
                             num_block=butt['num_block'],
                             size_blok=butt['size_blok'],
+                            name_block=butt['name_block'],
                             shablon_file=butt['shablon_file'],
                             active=butt['active'],
                             sort=butt['sort'],

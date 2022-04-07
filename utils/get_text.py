@@ -56,14 +56,14 @@ async def get_template(c, N_50_sabl, file_template):
     return text, c, N_50_
 
 
-async def get_vk_text(n_f_line: int, n_get: int, k: int, file: str):
+async def get_link_list(n_f_line: int, k: int, file: str):
     use = True
     try:
         with open('dir_files/'+file, 'r') as f:
             linesf = f.readlines()
     except Exception:
         await notify(f'Файл {file} не читается')
-        return f'Файл {file} не читается', n_f_line, n_get
+        return f'Файл {file} не читается', n_f_line
     text = ''
     for i in range(k):
         if n_f_line >= len(linesf):
@@ -72,12 +72,9 @@ async def get_vk_text(n_f_line: int, n_get: int, k: int, file: str):
             if text != '' and text[-1] != '\n': text = text + '\n'
             text += str(linesf[n_f_line])
             n_f_line += 1
-    if n_get != -1:
-        text = f'{n_get}\n{text}'
-        n_get += 1
 
     if not use:
         text += '\nсписок исчерпан'
         await notify(f"{file} исчерпан")
 
-    return text, n_f_line, n_get
+    return text, n_f_line
