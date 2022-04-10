@@ -101,12 +101,9 @@ async def adm_reset_stat_users(message: types.Message):
         await message.answer("Вы не админ этого бота, извините")
         return
 
-    for button in buttons_db.buttons_names:
-        if buttons_db.buttons[button].num_block != -1:
-            await buttons_db.write(button, ['num_block'], [1])
     await stat_db.dell()
     await stat_db.create(None)
-    await message.answer("Cтатистика по пользователям и счетчик шаблонов сброшены. /stUsers")
+    await message.answer("Cтатистика по пользователям сброшена. /stUsers")
     await log(f'admin: {message.text}, ({message.from_user.username})\n')
 
 

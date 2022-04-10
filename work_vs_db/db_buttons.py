@@ -51,8 +51,11 @@ class ButtonsDatabase:
         async with self.pool.acquire(): await self.pool.execute(query)
 
         query = """
+                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS hidden smallint DEFAULT 0;
+                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS users varchar DEFAULT NULL;
                 ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS name_block varchar DEFAULT NULL;
-                """
+                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS specification varchar DEFAULT 'Описание кнопки';
+               """
         async with self.pool.acquire(): await self.pool.execute(query)
 
         buttons_names = await self.read('get_names_buttons', '')
@@ -144,6 +147,11 @@ class ButtonsDatabase:
                 await self.pool.execute(query, button_name)
             self.buttons_names.remove(button_name)
             self.buttons.pop(button_name)
+
+        elif command == 'num_block':
+            query = """UPDATE buttons SET num_block = $2 WHERE name = $1;"""
+            async with self.pool.acquire(): await self.pool.execute(query, button_name, values)
+            self.buttons[button_name].num_block = values
 
         else:
             columns = command

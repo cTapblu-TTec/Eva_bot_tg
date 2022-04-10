@@ -1,11 +1,13 @@
 import asyncpg
+from dataclasses import dataclass
 
 
+@dataclass()
 class User:
     # user_name: str
     # user_id: int
     n_zamen: int
-    n_last_otm: tuple
+    # n_last_otm: tuple
     n_last_shabl: tuple
     # status: str - хочу добавить кураторов
 
@@ -31,20 +33,19 @@ class UsersDatabase:
 
         async with self.pool.acquire(): await self.pool.execute(query)
 
-        u = await self.read('get_names_users', '')
-        if not u:
+        names = await self.read('get_names_users', '')
+        if not names:
             with open('users.txt', 'r') as f:
-                u = f.readlines()
+                names = f.readlines()
             query = """INSERT INTO users (user_name) VALUES ($1) ON CONFLICT (user_name) DO NOTHING;"""
-            for user in u:
+            for user in names:
                 user = user.rstrip('\n')
                 async with self.pool.acquire(): await self.pool.execute(query, user)
-            u = await self.read('get_names_users', '')
-        self.users_names = u
-        self.users = {i: await self.read('n_zamen, n_last_otm, n_last_shabl', i) for i in self.users_names}
-        # for i in self.users:
-        #     print(self.users[i].n_last_shabl)
+            names = await self.read('get_names_users', '')
+        self.users_names = names
+        self.users = {name: await self.read('', name) for name in names}
 
+    #
     # __________READ__________
     async def read(self, command: str, user_name: str):
 
@@ -58,46 +59,42 @@ class UsersDatabase:
 
         else:
             # 'user_name, user_id, n_zamen, n_last_otm, n_last_shabl, status'
-            query = f"""SELECT {command} FROM users WHERE user_name = $1;"""
+            query = f"""SELECT * FROM users WHERE user_name = $1;"""
             async with self.pool.acquire(): u = await self.pool.fetch(query, user_name)
-            user = User()
-            user.user_name = user_name
-            if 'n_zamen' in command:
-                user.n_zamen = u[0]['n_zamen']
-            if 'n_last_otm' in command:
-                if u[0]['n_last_otm']: user.n_last_otm = u[0]['n_last_otm']
-                else: user.n_last_otm = ()
-            if 'n_last_shabl' in command:
-                if u[0]['n_last_shabl']: user.n_last_shabl = u[0]['n_last_shabl']
-                else: user.n_last_shabl = ()
+            user = None
+            if u:
+                u = u[0]
+                user = User(
+                    n_zamen=u['n_zamen'],
+                    n_last_shabl=u['n_last_shabl']
+                )
             return user
 
+    #
     # __________WRITE__________
-    async def write(self, user_name, command, USER):
+    async def write(self, user_name, command, values):
 
         if command == 'add_user':
             query = """INSERT INTO users (user_name) VALUES ($1) ON CONFLICT (user_name) DO NOTHING;"""
             async with self.pool.acquire(): await self.pool.execute(query, user_name)
             self.users_names.append(user_name)
-            user = User()
-            user.n_zamen, user.n_last_otm, user.n_last_shabl = 0, (), ()
+            user = self.read('', user_name)
             self.users.update({user_name: user})
+
         elif command == 'dell_user':
             query = """DELETE FROM users WHERE user_name = $1;"""
             async with self.pool.acquire(): await self.pool.execute(query, user_name)
             self.users_names.remove(user_name)
 
         else:
-            stolbec = command  # ['user_id', 'n_zamen', 'n_last_otm', 'n_last_shabl']
-            stolbcov = len(command)
+            columns = command  # ['user_id', 'n_zamen', 'n_last_otm', 'n_last_shabl']
 
-            for i in range(stolbcov):
-                query = f"""UPDATE users SET {stolbec[i]} = {USER[i]} WHERE user_name = $1;"""
+            for i in range(len(columns)):
+                query = f"""UPDATE users SET {columns[i]} = {values[i]} WHERE user_name = $1;"""
                 async with self.pool.acquire(): await self.pool.execute(query, user_name)
-                if stolbec[i] == 'n_zamen': self.users[user_name].n_zamen = USER[i]
-                if stolbec[i] == 'n_last_otm': self.users[user_name].n_last_otm = USER[i]
-                if stolbec[i] == 'n_last_shabl': self.users[user_name].n_last_shabl = USER[i]
-            # print(self.users[user_name].n_zamen, self.users[user_name].n_last_otm, self.users[user_name].n_last_shabl)
+
+                if columns[i] == 'n_zamen': self.users[user_name].n_zamen = values[i]
+                if columns[i] == 'n_last_shabl': self.users[user_name].n_last_shabl = values[i]
 
 
 users_db = UsersDatabase()

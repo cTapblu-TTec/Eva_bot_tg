@@ -61,7 +61,7 @@ async def work_buttons(message: types.Message):
 
     # ПОСЛЕ ВЫДАЧИ БЛОКА - запись в базы, лог, статистику
     if num:  # если с номером
-        await buttons_db.write(button_name, ['num_block'], [button.num_block])
+        await buttons_db.write(button_name, 'num_block', button.num_block)
 
     if tem:  # если с шаблоном
         await users_db.write(message.from_user.username, ['n_zamen', 'n_last_shabl'], [u.n_zamen, u.n_last_shabl])
@@ -70,7 +70,7 @@ async def work_buttons(message: types.Message):
         await stat_db.write(message.text, message.from_user.username)
 
     if otm:  # если с отметками
-        await f_db.write(button.work_file, ['num_line'], [num_line])
+        await f_db.write(button.work_file, 'num_line', num_line)
         # лог всегда дб последним действием!
         await log(f'№ строки {message.text}: {num_line}, ({message.from_user.username})\n')
     else:

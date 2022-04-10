@@ -27,7 +27,6 @@ class StatDatabase:
         self.users_st = []
         for i in u:
             self.users_st.append(i[0])
-        # print(self.users_st)
 
     # ______GET HTML______
     async def get_html(self):
@@ -93,9 +92,8 @@ class StatDatabase:
 
         text = head + columns + table + close
 
-        file = open('statistic.html', 'w', encoding='utf-8')
-        file.write(text)
-        file.close()
+        with open('statistic.html', 'w', encoding='utf-8') as file:
+            file.write(text)
 
     # ______WRITE______
     #   ведение statistic

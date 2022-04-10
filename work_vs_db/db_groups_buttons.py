@@ -7,8 +7,10 @@ from work_vs_db.db_buttons import buttons_db
 @dataclass()
 class GroupButtons:
     name: str
-    specification: str = 'Описание группы кнопок'
+    users: str = None
     hidden: int = 0
+    specification: str = 'Описание группы кнопок'
+
 
 
 class GroupsButtonsDatabase:
@@ -50,6 +52,7 @@ class GroupsButtonsDatabase:
             gr = gr[0]
             group = GroupButtons(
                         name=group_name,
+                        users=gr['users'],
                         specification=gr['specification'],
                         hidden=gr['hidden']
                         )

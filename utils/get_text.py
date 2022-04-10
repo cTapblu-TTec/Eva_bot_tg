@@ -3,57 +3,58 @@ import random
 from utils.notify_admins import notify
 
 
-# Vid_Shabl(b, n_zamen, n_last_sabl)
-async def get_template(c, N_50_sabl, file_template):
+async def get_template(replacement_num, n_lasts_templates, file_template):
     try:
         with open('dir_files/'+file_template, 'r') as file:
-            l_shablon = file.readlines()
+            list_f = file.readlines()
         with open('dir_files/name.txt', 'r') as file:
-            l_zamena = file.readlines()
+            list_re = file.readlines()
     except Exception:
         await notify(f'Файл {file_template} не читается')
-        return f'Файл {file_template} не читается', c, N_50_sabl
+        return f'Файл {file_template} не читается', replacement_num, n_lasts_templates
 
-    N_shabl = random.randint(0, len(l_shablon) - 1)
+    num_line = random.randint(0, len(list_f) - 1)
 
-    # проверка что этот шаблон не выдавался этому пользователю 50 последних раз
-    if N_50_sabl:
-        if isinstance(N_50_sabl, str) and len(N_50_sabl) > 4:
-            N_50_sabl = N_50_sabl[1:-1]
-            list_shabl = N_50_sabl.split(',')  # список номеров использованных шаблонов
-        elif isinstance(N_50_sabl, list):
-            list_shabl = N_50_sabl
-        elif isinstance(N_50_sabl, tuple):
-            list_shabl = list(N_50_sabl)
+    # проверка что этот шаблон не выдавался этому пользователю 35 последних раз
+    if n_lasts_templates:
+        if isinstance(n_lasts_templates, str) and len(n_lasts_templates) > 4:
+            n_lasts_templates = n_lasts_templates[1:-1]
+            list_lasts = n_lasts_templates.split(',')  # список номеров использованных шаблонов
+        elif isinstance(n_lasts_templates, list):
+            list_lasts = n_lasts_templates
+        elif isinstance(n_lasts_templates, tuple):
+            list_lasts = list(n_lasts_templates)
         else:
-            list_shabl = []
-            list_shabl.append(N_50_sabl)
-        if len(list_shabl) >= 35: del list_shabl[0:len(list_shabl) - 35]  # удаляем лишнее
+            list_lasts = []
+            list_lasts.append(n_lasts_templates)
+        if len(list_lasts) >= 35: del list_lasts[0:len(list_lasts) - 35]  # удаляем лишнее
 
-        while str(N_shabl) in list_shabl:
-            N_shabl = random.randint(0, len(l_shablon) - 1)
-        list_shabl.append(str(N_shabl))
-        N_50_ = tuple(list_shabl)
+        # если выдавался ранее, ищем другой
+        while str(num_line) in list_lasts:
+            num_line = random.randint(0, len(list_f) - 1)
+        list_lasts.append(str(num_line))
+        n_lasts_templates = tuple(list_lasts)
     else:
-        N_50_ = str(N_shabl)
+        n_lasts_templates = str(num_line)
 
-    text = str(l_shablon[N_shabl])  # выдача нужного шаблона
+    text = str(list_f[num_line])  # выдача нужного шаблона
 
-    est = False
-    for line in l_zamena:
-        stroka = line.split(', ')  # делим строку на список
-        for slovo in stroka:  # проверка строки
-            slovo = slovo.strip()
-            if slovo in text:
-                index1 = text.find(slovo)
-                index2 = len(slovo) + index1
+    # ПОДМЕНА В ШАБЛОНЕ СИНОНИМОВ
+    replace = False
+    for line in list_re:
+        synonyms = line.split(', ')  # делим строку на список
+        for word in synonyms:  # проверка строки
+            word = word.strip()
+            if word in text:
+                index1 = text.find(word)
+                index2 = len(word) + index1
                 if index2 == len(text) or text[index2] in ' !?.,\n)"':
-                    slovo2 = stroka[c % len(stroka)].strip()
-                    est = True
-                    text = text.replace(slovo, slovo2)  # замена слова
-    if est: c = c + 1
-    if c >= 10: c = 0
-    return text, c, N_50_
+                    word2 = synonyms[replacement_num % len(synonyms)].strip()
+                    replace = True
+                    text = text.replace(word, word2)  # замена слова
+    if replace: replacement_num += 1
+    if replacement_num >= 10: replacement_num = 0
+    return text, replacement_num, n_lasts_templates
 
 
 async def get_link_list(n_f_line: int, k: int, file: str):
