@@ -50,7 +50,7 @@ async def main():
     await files_id_db.create(pool)
     await f_db.create(pool)
     await stat_db.create(pool)
-    await buttons_db.create(pool)
+    await buttons_db.init(pool)
     await groups_db.create(pool)
 
     # _________START BOT________

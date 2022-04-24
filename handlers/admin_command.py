@@ -192,7 +192,7 @@ async def adm_read_bd(message: types.Message):
         return
 
     await f_db.create(None)
-    await buttons_db.create(None)
+    await buttons_db.create()
     await groups_db.create(None)
 
     await message.answer("Данные обновлены из базы данных")

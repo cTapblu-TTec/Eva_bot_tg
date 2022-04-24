@@ -26,10 +26,12 @@ class ButtonsDatabase:
     buttons_groups: list
     buttons: dict
 
-    #
+    async def init(self, pool):
+        self.pool = pool
+        await self.create()
+
     # __________CREATE__________
-    async def create(self, pool: asyncpg.Pool):
-        if pool: self.pool = pool
+    async def create(self):
         # await self.dell()
         query = """CREATE TABLE IF NOT EXISTS public.buttons
                 (

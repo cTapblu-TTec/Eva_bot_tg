@@ -33,6 +33,11 @@ class GroupsButtonsDatabase:
                     """
         async with self.pool.acquire(): await self.pool.execute(query)
 
+        query = """
+                ALTER TABLE public.groups_buttons ADD COLUMN IF NOT EXISTS users varchar DEFAULT NULL;
+               """
+        async with self.pool.acquire(): await self.pool.execute(query)
+
         for i in buttons_db.buttons_groups:
             query = """INSERT INTO groups_buttons (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
             async with self.pool.acquire(): await self.pool.execute(query, i)

@@ -17,6 +17,9 @@ async def echo(message: types.Message):
     for group in buttons_db.buttons_groups:
         if groups_db.groups[group].hidden == 0:
             text_message += f'"{group}" - {groups_db.groups[group].specification}\n'
+        else:  # скрытые группы для допущенных
+            if groups_db.groups[group].users and message.from_user.username in groups_db.groups[group].users:
+                text_message += f'"{group}" - {groups_db.groups[group].specification}\n'
 
     if user == 'admin':
         text_message += "\n/admin - админские команды\n"
