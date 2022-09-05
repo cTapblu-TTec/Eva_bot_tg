@@ -4,7 +4,10 @@ from filters.chek_buttons import ChekGroupButtons
 from utils.face_control import control
 from loader import dp
 from work_vs_db.db_buttons import buttons_db
+from work_vs_db.db_users import users_db
 
+
+# СОЗДАНИЕ НУЖНОГО  МЕНЮ
 
 @dp.message_handler(ChekGroupButtons())
 async def create_buttons(message: types.Message):
@@ -12,6 +15,8 @@ async def create_buttons(message: types.Message):
     if user == "guest": return
 
     # создаем список кнопок из нужной группы
+    group = message.text
+
     button_list = []
     for button in buttons_db.buttons:
         # создаем список групп если кнопка состоит не в одной группе
@@ -21,11 +26,11 @@ async def create_buttons(message: types.Message):
             list_grups = list_grups.replace(' ', '')
             list_grups = list_grups.split(',')
 
-        if buttons_db.buttons[button].group_buttons == message.text or message.text in list_grups:
+        if buttons_db.buttons[button].group_buttons == group or group in list_grups:
             # админ
             if user == 'admin':
                 button_list.append(button)
-            # кнопка не скрыта, список юзеров пуст
+            # кнопка не скрыта (список юзеров пуст)
             elif buttons_db.buttons[button].hidden == 0 and buttons_db.buttons[button].users is None:
                 button_list.append(button)
             # юзер в списке кнопки
@@ -53,7 +58,9 @@ async def create_buttons(message: types.Message):
     if buttons:
         keyboard.add(*buttons)
 
-    text_message = "создана группа кнопок '" + message.text + "'"
+    text_message = "создана группа кнопок '" + group + "'"
     if user == 'admin':
         text_message += "\n/admin - админские команды"
     await message.answer(text_message, reply_markup=keyboard)
+
+    await users_db.write(message.from_user.username, ['menu'], [group])

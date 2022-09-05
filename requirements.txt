@@ -3,3 +3,4 @@ asyncio
 asyncpg
 apscheduler
 pytz
+transliterate

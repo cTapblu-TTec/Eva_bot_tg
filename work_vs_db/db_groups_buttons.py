@@ -1,5 +1,6 @@
 import asyncpg
 from dataclasses import dataclass
+from transliterate import translit
 
 from work_vs_db.db_buttons import buttons_db
 
@@ -7,15 +8,16 @@ from work_vs_db.db_buttons import buttons_db
 @dataclass()
 class GroupButtons:
     name: str
+    en_name: str
     users: str = None
     hidden: int = 0
     specification: str = 'Описание группы кнопок'
 
 
-
 class GroupsButtonsDatabase:
     pool: asyncpg.Pool
     groups: dict
+    en_names_groups: list = []
 
     #
     # __________CREATE__________
@@ -43,6 +45,8 @@ class GroupsButtonsDatabase:
             async with self.pool.acquire(): await self.pool.execute(query, i)
 
         self.groups = {i: await self.read(i) for i in buttons_db.buttons_groups}
+        for group in self.groups:
+            self.en_names_groups.append(self.groups[group].en_name)
 
     #
     # __________READ__________
@@ -54,9 +58,13 @@ class GroupsButtonsDatabase:
             gr = await self.pool.fetch(query, group_name)
         group = None
         if gr:
+            en_name = group_name.lower()[:30].replace(' ', '_')
+            en_name = translit(en_name, language_code='ru', reversed=True)
+
             gr = gr[0]
             group = GroupButtons(
                         name=group_name,
+                        en_name=en_name,
                         users=gr['users'],
                         specification=gr['specification'],
                         hidden=gr['hidden']

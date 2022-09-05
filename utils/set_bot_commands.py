@@ -1,11 +1,21 @@
+import logging
+
 from aiogram import types
 
 from loader import dp
+from work_vs_db.db_buttons import buttons_db
+from work_vs_db.db_groups_buttons import groups_db
 
 
 async def set_default_commands():
-    await dp.bot.set_my_commands(
-        [
-            types.BotCommand("help", "описание кнопок"),
-        ]
-    )
+    # в меню где хелп втавить клавиатуры
+    commands = [types.BotCommand("help", "описание всех кнопок")]
+
+    for group in buttons_db.buttons_groups:
+        if groups_db.groups[group].hidden == 0:  # если не скрытая группа
+            commands.append(types.BotCommand(groups_db.groups[group].en_name, groups_db.groups[group].specification))
+
+    try:
+        await dp.bot.set_my_commands(commands)
+    except Exception:
+        logging.error(f"Команды не установились \n{commands=}")

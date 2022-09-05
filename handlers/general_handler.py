@@ -26,6 +26,7 @@ async def work_buttons(message: types.Message):
     otm = False
     num = False
     tem = False
+    u = users_db.users[message.from_user.username]
 
     # НОМЕР БЛОКА
     if button.num_block != -1:
@@ -38,7 +39,6 @@ async def work_buttons(message: types.Message):
 
     # ШАБЛОН
     if button.shablon_file is not None and button.shablon_file != 'gena.txt':
-        u = users_db.users[message.from_user.username]
         template, u.n_zamen, u.n_last_shabl = await get_template(u.n_zamen, u.n_last_shabl, button.shablon_file)
         tem = True
     # ГЕНА
@@ -55,9 +55,14 @@ async def work_buttons(message: types.Message):
         except Exception:
             await notify(f'Файл {button.work_file} отсутствует в базе в таблице filess')
 
+    # КЛАВИАТУРА
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add(*['Назад', button_name])
+    await users_db.write(message.from_user.username, ['last_button'], [button_name])
+
     # ВЫДАЧА БЛОКА
     text = number + template + links
-    if text: await message.answer(text)
+    if text: await message.answer(text, reply_markup=keyboard)
 
     # ПОСЛЕ ВЫДАЧИ БЛОКА - запись в базы, лог, статистику
     if num:  # если с номером
@@ -75,3 +80,5 @@ async def work_buttons(message: types.Message):
         await log(f'№ строки {message.text}: {num_line}, ({message.from_user.username})\n')
     else:
         await log(f'{message.text}, ({message.from_user.username})\n')
+
+

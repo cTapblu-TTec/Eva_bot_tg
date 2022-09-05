@@ -15,13 +15,15 @@ class ChekButtons(BoundFilter):
 
 class ChekGroupButtons(BoundFilter):
     async def check(self, message: types.Message):
-        if message.text in buttons_db.buttons_groups:
-            if groups_db.groups[message.text].hidden == 0:
+        group = message.text
+
+        if group in buttons_db.buttons_groups:
+            if groups_db.groups[group].hidden == 0:
                 return True
             else:
                 if str(message.from_user.id) in ADMINS:
                     return True
-                if groups_db.groups[message.text].users and \
-                        message.from_user.username in groups_db.groups[message.text].users:
+                if groups_db.groups[group].users and \
+                        message.from_user.username in groups_db.groups[group].users:
                     return True
         return False

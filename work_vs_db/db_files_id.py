@@ -23,6 +23,9 @@ class FileDatabase:
         await self.read()
         for file in self.files:
             await download(file)
+            # отрезать от файла использованное
+            # добавить проверку что если в файле осталось больше 5000 неиспользованных строк, то из него
+            # нужно вырезать кусок в 5000 строк
 
     # ______READ______
     async def read(self):

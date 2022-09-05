@@ -58,24 +58,23 @@ async def get_template(replacement_num, n_lasts_templates, file_template):
 
 
 async def get_link_list(n_f_line: int, k: int, file: str):
-    use = True
     try:
         with open('dir_files/'+file, 'r') as f:
             linesf = f.readlines()
+            len_f = len(linesf)
     except Exception:
         await notify(f'Файл {file} не читается')
-        return f'Файл {file} не читается', n_f_line
+        return f'Файл не читается', n_f_line
+
     text = ''
     for i in range(k):
-        if n_f_line >= len(linesf):
-            use = False
-        if use:
-            if text != '' and text[-1] != '\n': text = text + '\n'
-            text += str(linesf[n_f_line])
-            n_f_line += 1
-
-    if not use:
-        text += '\nсписок исчерпан'
-        await notify(f"{file} исчерпан")
+        if n_f_line >= len_f:
+            # сюда добавить проверку что в основном файле есть еще отметки и загрузку из него нового кусочка 5000
+            text += '\nсписок исчерпан'
+            await notify(f"{file} исчерпан")
+            break
+        if text != '' and text[-1] != '\n': text = text + '\n'
+        text += str(linesf[n_f_line])
+        n_f_line += 1
 
     return text, n_f_line

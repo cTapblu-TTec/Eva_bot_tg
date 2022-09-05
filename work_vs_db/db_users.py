@@ -10,6 +10,8 @@ class User:
     # n_last_otm: tuple
     n_last_shabl: tuple
     # status: str - хочу добавить кураторов
+    menu: str
+    last_button: str
 
 
 class UsersDatabase:
@@ -25,13 +27,19 @@ class UsersDatabase:
                         user_name character varying(30) COLLATE pg_catalog."default" NOT NULL,
                         user_id integer,
                         n_zamen integer DEFAULT 0,
-                        n_last_otm varchar,
                         n_last_shabl varchar,
                         status VARCHAR COLLATE pg_catalog."default" DEFAULT 'user',
                         CONSTRAINT "Users_pkey" PRIMARY KEY (user_name)
                     ); """
+        async with self.pool.acquire():
+            await self.pool.execute(query)
 
-        async with self.pool.acquire(): await self.pool.execute(query)
+        query = """
+                ALTER TABLE public.users ADD COLUMN IF NOT EXISTS menu varchar DEFAULT NULL;
+                ALTER TABLE public.users ADD COLUMN IF NOT EXISTS last_button varchar DEFAULT NULL;
+               """
+        async with self.pool.acquire():
+            await self.pool.execute(query)
 
         names = await self.read('get_names_users', '')
         if not names:
@@ -51,7 +59,8 @@ class UsersDatabase:
 
         if command == 'get_names_users':
             query = """SELECT user_name FROM users;"""
-            async with self.pool.acquire(): u = await self.pool.fetch(query)
+            async with self.pool.acquire():
+                u = await self.pool.fetch(query)
             users_names = []
             for i in u:
                 users_names.append(i['user_name'])
@@ -60,13 +69,16 @@ class UsersDatabase:
         else:
             # 'user_name, user_id, n_zamen, n_last_otm, n_last_shabl, status'
             query = f"""SELECT * FROM users WHERE user_name = $1;"""
-            async with self.pool.acquire(): u = await self.pool.fetch(query, user_name)
+            async with self.pool.acquire():
+                u = await self.pool.fetch(query, user_name)
             user = None
             if u:
                 u = u[0]
                 user = User(
                     n_zamen=u['n_zamen'],
-                    n_last_shabl=u['n_last_shabl']
+                    n_last_shabl=u['n_last_shabl'],
+                    menu=u['menu'],
+                    last_button=u['last_button']
                 )
             return user
 
@@ -76,25 +88,34 @@ class UsersDatabase:
 
         if command == 'add_user':
             query = """INSERT INTO users (user_name) VALUES ($1) ON CONFLICT (user_name) DO NOTHING;"""
-            async with self.pool.acquire(): await self.pool.execute(query, user_name)
+            async with self.pool.acquire():
+                await self.pool.execute(query, user_name)
             self.users_names.append(user_name)
-            user = self.read('', user_name)
+            user = await self.read('', user_name)
             self.users.update({user_name: user})
+            print(self.users)
 
         elif command == 'dell_user':
             query = """DELETE FROM users WHERE user_name = $1;"""
-            async with self.pool.acquire(): await self.pool.execute(query, user_name)
+            async with self.pool.acquire():
+                await self.pool.execute(query, user_name)
             self.users_names.remove(user_name)
 
         else:
             columns = command  # ['user_id', 'n_zamen', 'n_last_otm', 'n_last_shabl']
 
             for i in range(len(columns)):
-                query = f"""UPDATE users SET {columns[i]} = {values[i]} WHERE user_name = $1;"""
-                async with self.pool.acquire(): await self.pool.execute(query, user_name)
+                if isinstance(values[i], str):
+                    valu = "'" + values[i] + "'"
+                else: valu = values[i]
+                query = f"""UPDATE users SET {columns[i]} = {valu} WHERE user_name = $1;"""
+                async with self.pool.acquire():
+                    await self.pool.execute(query, user_name)
 
                 if columns[i] == 'n_zamen': self.users[user_name].n_zamen = values[i]
                 if columns[i] == 'n_last_shabl': self.users[user_name].n_last_shabl = values[i]
+                if columns[i] == 'menu': self.users[user_name].menu = values[i]
+                if columns[i] == 'last_button': self.users[user_name].last_button = values[i]
 
 
 users_db = UsersDatabase()

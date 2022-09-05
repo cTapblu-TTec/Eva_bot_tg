@@ -7,6 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from data.config import HEROKU, DATABASE_URL
 from filters.chek_buttons import ChekButtons, ChekGroupButtons
 from loader import dp
+from middlewares.menu import MenuMid
 from utils.notify_admins import on_startup_notify
 from utils.set_bot_commands import set_default_commands
 from utils.reset import reset_statistics
@@ -54,6 +55,7 @@ async def main():
     await groups_db.create(pool)
 
     # _________START BOT________
+    dp.middleware.setup(MenuMid())
     dp.filters_factory.bind(ChekButtons)
     dp.filters_factory.bind(ChekGroupButtons)
     import handlers

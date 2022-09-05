@@ -36,6 +36,8 @@ async def adm_change_file(message: types.Message):
                 await message.reply('Файл очень большой, бот будет тормозить, рекомендуемый размер - 10000 строк')
             # сохраняем новый id файла
             await files_id_db.write(message.document.file_name, message.document.file_id)
+            # сохраняем длину файла
+            await f_db.write(message.document.file_name, ['length'], [length])
 
             await message.reply(f'Команда для сброса:\n/set {message.document.file_name} num_line 0')
             await log(f'admin: Загружен файл - {message.document.file_name}, '

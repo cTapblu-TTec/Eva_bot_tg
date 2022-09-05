@@ -71,12 +71,17 @@ async def adm_stat(message: types.Message):
 
     stat = ''
     for file in f_db.files:
-        try:
-            with open('dir_files/'+file, "r") as f:
-                len_ = len(f.readlines())
-            stat += f'{f_db.files[file].name} -- {f_db.files[file].num_line} из {len_}\n'
-        except Exception:
-            await message.answer(f'файл {file} не найден')
+        if f_db.files[file].length:
+            stat += f'{f_db.files[file].name} -- {f_db.files[file].num_line} из {f_db.files[file].length}\n'
+        else:
+            try:
+                with open('dir_files/'+file, "r") as f:
+                    len_ = len(f.readlines())
+                stat += f'{f_db.files[file].name} -- {f_db.files[file].num_line} из {len_}\n'
+                # сохраняем длину файла
+                await f_db.write(file, ['length'], [len_])
+            except Exception:
+                await message.answer(f'файл {file} не найден')
     await message.answer(stat)
     await log(f'admin: {message.text}, ({message.from_user.username})\n')
 
