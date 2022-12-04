@@ -30,7 +30,7 @@ async def adm_change_file(message: types.Message):
         # -= СКАЧИВАЕМ НОВЫЙ ФАЙЛ:
         try:
             await message.document.download(destination_file=dir+message.document.file_name)
-            with open(dir+message.document.file_name, 'r') as f:
+            with open(dir+message.document.file_name, 'r', encoding='utf-8') as f:
                 length = len(f.readlines())  # проверяем что файл читается
             if length > 20000:
                 await message.reply('Файл очень большой, бот будет тормозить, рекомендуемый размер - 10000 строк')

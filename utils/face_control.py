@@ -7,6 +7,7 @@ from work_vs_db.db_users import users_db
 
 async def control(message: types.Message):
     user = "guest"
+
     if str(message.from_user.id) in ADMINS:
         user = "admin"  # присвоить статус админ
 
@@ -15,8 +16,15 @@ async def control(message: types.Message):
 
     else:  # user = "guest"
         await message.answer("Извините, у Вас нет доступа к боту")
-        await stat_db.write('Гость', message.from_user.username)
-        await log(f'{message.text}, ({message.from_user.username})\n')
-        return user
+        if message.from_user.username is not None:
+            username = message.from_user.username
+        elif message.from_user.first_name is not None:
+            username = message.from_user.first_name
+            if message.from_user.last_name is not None:
+                username += '_' + message.from_user.last_name
+        else:
+            username = message.from_user.id
+        await stat_db.write('Гость', username)
+        await log(f'Гость: "{message.text}", ({username})\n')
 
     return user

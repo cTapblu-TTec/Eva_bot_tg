@@ -4,8 +4,8 @@ import asyncpg
 from pytz import timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from data.config import HEROKU, DATABASE_URL
-from filters.chek_buttons import ChekButtons, ChekGroupButtons
+from data.config import LINUX, DATABASE_URL
+from filters.chek_buttons import ChekButtons, ChekGroupButtons, ChekButtonsForCallback
 from loader import dp
 from middlewares.menu import MenuMid
 from utils.notify_admins import on_startup_notify
@@ -29,8 +29,8 @@ async def on_startup():
 
 
 def create_pool() -> asyncpg.Pool:
-    if HEROKU:
-        return asyncpg.create_pool(DATABASE_URL, max_size=20)
+    if LINUX:
+        return asyncpg.create_pool(database='eva', user='bot', password='vga1600', host='localhost', max_size=20)
     else:
         return asyncpg.create_pool(database='abc', user='postgres', password='vga1600', host='localhost', max_size=20)
 
@@ -44,7 +44,7 @@ async def main():
     # _________SCHEDULER________
     scheduler = AsyncIOScheduler()
     scheduler.timezone = timezone('Europe/Moscow')
-    scheduler.add_job(reset_statistics, 'cron', hour=4, minute=30)
+    scheduler.add_job(reset_statistics, 'cron', hour=2, minute=30, misfire_grace_time=3600)
     # _________POOL________
     pool = await create_pool()
     await users_db.create(pool)
@@ -58,6 +58,7 @@ async def main():
     dp.middleware.setup(MenuMid())
     dp.filters_factory.bind(ChekButtons)
     dp.filters_factory.bind(ChekGroupButtons)
+    dp.filters_factory.bind(ChekButtonsForCallback)
     import handlers
     await on_startup()
     await dp.skip_updates()
@@ -74,7 +75,7 @@ async def main():
     # _________MAIN________
 if __name__ == '__main__':
     try:
-        if not HEROKU:
+        if not LINUX:
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):

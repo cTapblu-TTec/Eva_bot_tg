@@ -75,7 +75,7 @@ async def adm_stat(message: types.Message):
             stat += f'{f_db.files[file].name} -- {f_db.files[file].num_line} из {f_db.files[file].length}\n'
         else:
             try:
-                with open('dir_files/'+file, "r") as f:
+                with open('dir_files/'+file, "r", encoding='utf-8') as f:
                     len_ = len(f.readlines())
                 stat += f'{f_db.files[file].name} -- {f_db.files[file].num_line} из {len_}\n'
                 # сохраняем длину файла

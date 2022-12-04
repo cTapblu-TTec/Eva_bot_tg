@@ -27,6 +27,7 @@ async def echo(message: types.Message):
             if groups_db.groups[group].hidden == 1:
                 text_message += f'"{group}" - {groups_db.groups[group].specification}\n'
 
-    text_message += '\nОписание кнопок - /help'
+    text_message += '\nОписание кнопок - /help\n' \
+                    'удалить клавиатуру - /del'
 
     await message.answer(text_message)

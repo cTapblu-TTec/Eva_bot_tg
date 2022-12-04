@@ -19,24 +19,25 @@ async def create_buttons(message: types.Message):
 
     button_list = []
     for button in buttons_db.buttons:
-        # создаем список групп если кнопка состоит не в одной группе
-        list_grups = ''
-        if ',' in buttons_db.buttons[button].group_buttons:
-            list_grups = buttons_db.buttons[button].group_buttons
-            list_grups = list_grups.replace(' ', '')
-            list_grups = list_grups.split(',')
+        if buttons_db.buttons[button].active == 1:
+            # создаем список групп если кнопка состоит не в одной группе
+            list_grups = ''
+            if ',' in buttons_db.buttons[button].group_buttons:
+                list_grups = buttons_db.buttons[button].group_buttons
+                list_grups = list_grups.replace(' ', '')
+                list_grups = list_grups.split(',')
 
-        if buttons_db.buttons[button].group_buttons == group or group in list_grups:
-            # админ
-            if user == 'admin':
-                button_list.append(button)
-            # кнопка не скрыта (список юзеров пуст)
-            elif buttons_db.buttons[button].hidden == 0 and buttons_db.buttons[button].users is None:
-                button_list.append(button)
-            # юзер в списке кнопки
-            elif buttons_db.buttons[button].users is not None and \
-                    message.from_user.username in buttons_db.buttons[button].users:
-                button_list.append(button)
+            if buttons_db.buttons[button].group_buttons == group or group in list_grups:
+                # админ
+                if user == 'admin':
+                    button_list.append(button)
+                # кнопка не скрыта (список юзеров пуст)
+                elif buttons_db.buttons[button].hidden == 0 and buttons_db.buttons[button].users is None:
+                    button_list.append(button)
+                # юзер в списке кнопки
+                elif buttons_db.buttons[button].users is not None and \
+                        message.from_user.username in buttons_db.buttons[button].users:
+                    button_list.append(button)
 
     # добавляем админские кнопки
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -64,3 +65,8 @@ async def create_buttons(message: types.Message):
     await message.answer(text_message, reply_markup=keyboard)
 
     await users_db.write(message.from_user.username, ['menu'], [group])
+
+
+@dp.message_handler(commands=['del'])
+async def delete_buttons(message: types.Message):
+    await message.answer('клавиатура удалена', reply_markup=types.ReplyKeyboardRemove())

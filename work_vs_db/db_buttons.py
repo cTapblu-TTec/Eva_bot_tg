@@ -39,12 +39,12 @@ class ButtonsDatabase:
                     group_buttons varchar DEFAULT 'a',
                     work_file varchar DEFAULT NULL,
                     num_block smallint NOT NULL DEFAULT 1,
-                    size_blok smallint NOT NULL DEFAULT 3,
-                    name_block varchar DEFAULT NULL,
-                    shablon_file varchar DEFAULT NULL,
-                    active smallint NOT NULL DEFAULT 1,
+                    size_blok smallint NOT NULL DEFAULT 3, CHECK (size_blok >= 0 AND size_blok <= 20),
+                    name_block varchar(30) DEFAULT NULL,
+                    shablon_file varchar(30) DEFAULT NULL,
+                    active smallint NOT NULL DEFAULT 1, CHECK (active >= 0 AND active <= 1),
                     sort smallint NOT NULL DEFAULT 1,
-                    hidden smallint NOT NULL DEFAULT 0,
+                    hidden smallint NOT NULL DEFAULT 0, CHECK (hidden >= 0 AND hidden <= 1),
                     users varchar DEFAULT NULL,
                     specification varchar DEFAULT 'Описание кнопки',
                     CONSTRAINT buttons_pkey PRIMARY KEY (name)
@@ -53,12 +53,12 @@ class ButtonsDatabase:
         async with self.pool.acquire(): await self.pool.execute(query)
 
         query = """
-                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS hidden smallint DEFAULT 0;
-                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS users varchar DEFAULT NULL;
-                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS name_block varchar DEFAULT NULL;
                 ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS specification varchar DEFAULT 'Описание кнопки';
+                ALTER TABLE public.buttons ADD CHECK (size_blok >= 0 AND size_blok <= 20);
+                ALTER TABLE public.buttons ADD CHECK (active >= 0 AND active <= 1);
+                ALTER TABLE public.buttons ADD CHECK (hidden >= 0 AND hidden <= 1);
                """
-        async with self.pool.acquire(): await self.pool.execute(query)
+        # async with self.pool.acquire(): await self.pool.execute(query)
 
         buttons_names = await self.read('get_names_buttons', '')
         if not buttons_names:
@@ -78,7 +78,7 @@ class ButtonsDatabase:
     async def read(self, command: str, button_name: str):
 
         if command == 'get_names_buttons':
-            query = """SELECT name FROM buttons WHERE active = 1 ORDER BY sort ASC ;"""
+            query = """SELECT name FROM buttons ORDER BY sort ASC ;"""
             async with self.pool.acquire():
                 butt_names = await self.pool.fetch(query)
             buttons_names = []
@@ -150,17 +150,21 @@ class ButtonsDatabase:
             self.buttons_names.remove(button_name)
             self.buttons.pop(button_name)
 
-        elif command == 'num_block':
+        elif command == 'n_block':
             query = """UPDATE buttons SET num_block = $2 WHERE name = $1;"""
             async with self.pool.acquire(): await self.pool.execute(query, button_name, values)
-            self.buttons[button_name].num_block = values
 
         else:
             columns = command
             # ['name', 'group_buttons', 'work_file', 'num_block', 'size_blok', 'shablon_file', 'active']
 
             for i in range(len(columns)):
+                print(values[i])
+                if not values[i].isdigit():
+                    values[i] = "'" + values[i] + "'"
+                    print(values[i])
                 query = f"""UPDATE buttons SET {columns[i]} = {values[i]} WHERE name = $1;"""
+                print(query)
                 async with self.pool.acquire(): await self.pool.execute(query, button_name)
 
             button = await self.read('', button_name)

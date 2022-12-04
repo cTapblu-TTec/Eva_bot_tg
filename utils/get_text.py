@@ -5,9 +5,9 @@ from utils.notify_admins import notify
 
 async def get_template(replacement_num, n_lasts_templates, file_template):
     try:
-        with open('dir_files/'+file_template, 'r') as file:
+        with open('dir_files/'+file_template, 'r', encoding='utf-8') as file:
             list_f = file.readlines()
-        with open('dir_files/name.txt', 'r') as file:
+        with open('dir_files/name.txt', 'r', encoding='utf-8') as file:
             list_re = file.readlines()
     except Exception:
         await notify(f'Файл {file_template} не читается')
@@ -58,8 +58,8 @@ async def get_template(replacement_num, n_lasts_templates, file_template):
 
 
 async def get_link_list(n_f_line: int, k: int, file: str):
-    try:
-        with open('dir_files/'+file, 'r') as f:
+    try:  # todo держать в памяти последние 3 файла
+        with open('dir_files/'+file, 'r', encoding='utf-8') as f:
             linesf = f.readlines()
             len_f = len(linesf)
     except Exception:
@@ -69,7 +69,7 @@ async def get_link_list(n_f_line: int, k: int, file: str):
     text = ''
     for i in range(k):
         if n_f_line >= len_f:
-            # сюда добавить проверку что в основном файле есть еще отметки и загрузку из него нового кусочка 5000
+            # todo сюда добавить проверку что в основном файле есть еще отметки и загрузку из него нового кусочка 5000
             text += '\nсписок исчерпан'
             await notify(f"{file} исчерпан")
             break

@@ -1,5 +1,6 @@
 from aiogram import types
 
+#from app import logger
 from filters.chek_buttons import ChekButtons
 from loader import dp
 from utils.face_control import control
@@ -15,6 +16,7 @@ from work_vs_db.db_users import users_db
 
 @dp.message_handler(ChekButtons())
 async def work_buttons(message: types.Message):
+    #logger.info("1 - Start handler")
     user = await control(message)  # проверяем статус пользователя
     if user == "guest": return
 
@@ -26,7 +28,10 @@ async def work_buttons(message: types.Message):
     otm = False
     num = False
     tem = False
+    users_db.users[message.from_user.username].last_button = button_name
     u = users_db.users[message.from_user.username]
+
+    #logger.info("2 - Номер блока")
 
     # НОМЕР БЛОКА
     if button.num_block != -1:
@@ -34,16 +39,22 @@ async def work_buttons(message: types.Message):
             number = f'{button.num_block} {button.name_block}\n'
         else:
             number = f'{button.num_block}\n'
-        button.num_block += 1
+        buttons_db.buttons[button_name].num_block += 1
         num = True
+
+    #logger.info("3 - Шаблон")
 
     # ШАБЛОН
     if button.shablon_file is not None and button.shablon_file != 'gena.txt':
         template, u.n_zamen, u.n_last_shabl = await get_template(u.n_zamen, u.n_last_shabl, button.shablon_file)
+        users_db.users[message.from_user.username].n_zamen = u.n_zamen
+        users_db.users[message.from_user.username].n_last_shabl = u.n_last_shabl
         tem = True
     # ГЕНА
     elif button.shablon_file == 'gena.txt':
         template = await gennadij.get_text()
+
+    #logger.info("4 - Отметки")
 
     # ОТМЕТКИ
     if button.work_file is not None:
@@ -52,32 +63,44 @@ async def work_buttons(message: types.Message):
             file = f_db.files[button.work_file].name
             links, num_line = await get_link_list(num_line, button.size_blok, file)
             otm = True
+            f_db.files[button.work_file].num_line = num_line
         except Exception:
             await notify(f'Файл {button.work_file} отсутствует в базе в таблице filess')
+
+    #logger.info("5 - Клавиатура")
 
     # КЛАВИАТУРА
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(*['Назад', button_name])
-    await users_db.write(message.from_user.username, ['last_button'], [button_name])
 
     # ВЫДАЧА БЛОКА
+
+    #logger.info("6 - Выдача блока")
+
     text = number + template + links
     if text: await message.answer(text, reply_markup=keyboard)
 
+    #logger.info("7 - Начало записи в БД")
+
     # ПОСЛЕ ВЫДАЧИ БЛОКА - запись в базы, лог, статистику
     if num:  # если с номером
-        await buttons_db.write(button_name, 'num_block', button.num_block)
+        await buttons_db.write(button_name, 'n_block', buttons_db.buttons[button_name].num_block)
 
+    # -----===== исправить на работу без Ф-строк========-------
     if tem:  # если с шаблоном
-        await users_db.write(message.from_user.username, ['n_zamen', 'n_last_shabl'], [u.n_zamen, u.n_last_shabl])
+        await users_db.write(message.from_user.username, ['n_zamen', 'n_last_shabl', 'last_button'],
+                             [u.n_zamen, u.n_last_shabl, button_name])
+    else:  # клавиатура
+        await users_db.write(message.from_user.username, ['last_button'], [button_name])
 
     if button.hidden == 0:  # пишем статистику если кнопка не скрытая
         await stat_db.write(message.text, message.from_user.username)
 
     if otm:  # если с отметками
-        await f_db.write(button.work_file, 'num_line', num_line)
+        await f_db.write(button.work_file, 'n_line', f_db.files[button.work_file].num_line)
         # лог всегда дб последним действием!
         await log(f'№ строки {message.text}: {num_line}, ({message.from_user.username})\n')
+        #logger.info("8 - Конец")
     else:
         await log(f'{message.text}, ({message.from_user.username})\n')
 

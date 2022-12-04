@@ -43,7 +43,7 @@ class UsersDatabase:
 
         names = await self.read('get_names_users', '')
         if not names:
-            with open('users.txt', 'r') as f:
+            with open('users.txt', 'r', encoding='utf-8') as f:
                 names = f.readlines()
             query = """INSERT INTO users (user_name) VALUES ($1) ON CONFLICT (user_name) DO NOTHING;"""
             for user in names:
@@ -93,7 +93,6 @@ class UsersDatabase:
             self.users_names.append(user_name)
             user = await self.read('', user_name)
             self.users.update({user_name: user})
-            print(self.users)
 
         elif command == 'dell_user':
             query = """DELETE FROM users WHERE user_name = $1;"""
@@ -112,10 +111,7 @@ class UsersDatabase:
                 async with self.pool.acquire():
                     await self.pool.execute(query, user_name)
 
-                if columns[i] == 'n_zamen': self.users[user_name].n_zamen = values[i]
-                if columns[i] == 'n_last_shabl': self.users[user_name].n_last_shabl = values[i]
                 if columns[i] == 'menu': self.users[user_name].menu = values[i]
-                if columns[i] == 'last_button': self.users[user_name].last_button = values[i]
 
 
 users_db = UsersDatabase()

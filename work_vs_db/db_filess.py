@@ -35,7 +35,7 @@ class FilesDatabase:
 
         ff = await self.read('get_names_files', '')
         if not ff:
-            with open('files.txt', 'r') as f: # encoding='utf-8-sig'
+            with open('files.txt', 'r', encoding='utf-8') as f: # encoding='utf-8-sig'
                 ff = f.readlines()
             query = """INSERT INTO filess (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
             for file in ff:
@@ -95,10 +95,9 @@ class FilesDatabase:
             self.files_names.remove(file_name[:-4])
             self.files.pop(file_name)
 
-        elif command == 'num_line':
+        elif command == 'n_line':
             query = """UPDATE filess SET num_line = $2 WHERE name = $1;"""
             async with self.pool.acquire(): await self.pool.execute(query, file_name, values)
-            self.files[file_name].num_line = values
 
         else:
             columns = command  # ['name', 'num_line', 'num_block', 'size_blok', 'file_id', 'next_file_id']

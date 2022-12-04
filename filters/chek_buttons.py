@@ -1,5 +1,5 @@
 from aiogram import types
-from aiogram.dispatcher.filters import BoundFilter
+from aiogram.dispatcher.filters import BoundFilter, Filter
 
 from data.config import ADMINS
 from work_vs_db.db_buttons import buttons_db
@@ -8,7 +8,14 @@ from work_vs_db.db_groups_buttons import groups_db
 
 class ChekButtons(BoundFilter):
     async def check(self, message: types.Message):
-        if message.text in buttons_db.buttons_names:
+        if message.text in buttons_db.buttons_names and buttons_db.buttons[message.text].active == 1:
+            return True
+        return False
+
+
+class ChekButtonsForCallback(BoundFilter):
+    async def check(self,  callback):
+        if callback.data in buttons_db.buttons_names:
             return True
         return False
 

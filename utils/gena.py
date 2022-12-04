@@ -17,7 +17,7 @@ class SlovDB:
         self.read()
 
     def read(self):
-        with open('dir_files/gena.txt', 'r') as f_db:
+        with open('dir_files/gena.txt', 'r', encoding='utf-8') as f_db:
             lf = f_db.readlines()
         k = 1
         pk = 1
@@ -64,7 +64,7 @@ class SlovDB:
 
 db_sl = SlovDB()
 # print(db_sl.l_skaz)
-print('Вариантов шаблонов Гены:', db_sl.vsego_variantov)
+# print('Вариантов шаблонов Гены:', db_sl.vsego_variantov)
 
 
 class Predlojenie:
@@ -84,7 +84,7 @@ class Predlojenie:
         await self.vibor_slov()
         text = await self.slojenie_slov()
         while text in self.last_s:
-            print('iskl')
+            # print('iskl')
             await self.vibor_slov()
             text = await self.slojenie_slov()
 
