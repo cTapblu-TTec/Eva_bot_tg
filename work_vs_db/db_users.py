@@ -105,13 +105,10 @@ class UsersDatabase:
 
             for i in range(len(columns)):
                 if isinstance(values[i], str):
-                    valu = "'" + values[i] + "'"
-                else: valu = values[i]
-                query = f"""UPDATE users SET {columns[i]} = {valu} WHERE user_name = $1;"""
+                    values[i] = "'" + values[i] + "'"
+                query = f"""UPDATE users SET {columns[i]} = {values[i]} WHERE user_name = $1;"""
                 async with self.pool.acquire():
                     await self.pool.execute(query, user_name)
-
-                if columns[i] == 'menu': self.users[user_name].menu = values[i]
 
 
 users_db = UsersDatabase()

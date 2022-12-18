@@ -17,7 +17,8 @@ async def adm_commands(message: types.Message):
         await message.answer("Вы не админ этого бота, извините")
         return
 
-    await message.answer("/st - количество отметок и шаблонов\n"    
+    await message.answer("/settings - пока только настройка кнопок\n"
+                         "/st - количество отметок и шаблонов\n"    
                          "/stUsers - статистика пользователей\n"
                          "/reStUr - сброс статистики пользователей\n"
                          "/adUser ник - добавить пользователя\n"
@@ -38,10 +39,23 @@ async def adm_users(message: types.Message):
         await message.answer("Вы не админ этого бота, извините")
         return
 
-    text = 'имя - отметки - шаблоны\n\n'
+    text = 'имя - отметки - осталось нажатий\n\n'
     for button in buttons_db.buttons:
-        text += f"{buttons_db.buttons[button].name} - {buttons_db.buttons[button].work_file}" \
-                f" - {buttons_db.buttons[button].shablon_file}\n"
+        #  Количество оставшихся нажатий кнопки
+        file = buttons_db.buttons[button].work_file
+        cliks = None
+        if file is not None:
+            if f_db.files[file].length is None:
+                try:
+                    with open('dir_files/'+file, "r", encoding='utf-8') as f:
+                        len_ = len(f.readlines())
+                    await f_db.write(file, ['length'], [len_])
+                except Exception:
+                    await message.answer(f'файл {file} не найден')
+            size = f_db.files[file].length - f_db.files[file].num_line
+            if size >=1:
+                cliks = size//buttons_db.buttons[button].size_blok
+        text += f"{buttons_db.buttons[button].name} - {file} - {cliks}\n"
 
     await message.answer(text)
     await log(f'admin: {message.text}, ({message.from_user.username})\n')
@@ -146,8 +160,8 @@ async def adm_set_files(message: types.Message):
         zapros = text.split(' ')
         if zapros[0][:-4] in f_db.files_names:
             if zapros[1] in ('num_line', 'num_block', 'size_blok', 'active'):
-                if zapros[2].isdigit:
-                    await f_db.write(zapros[0], [zapros[1]], [int(zapros[2])])
+                if zapros[2]:
+                    await f_db.write(zapros[0], [zapros[1]], [zapros[2]])
                     await message.answer("Значение установлено, для проверки нажмите /st")
                     await log(f'admin: {message.text}, ({message.from_user.username})\n')
                 else: ass = True
@@ -174,7 +188,6 @@ async def adm_set_butt(message: types.Message):
         if zapros[0] in buttons_db.buttons_names:
             if zapros[1] in ('group_buttons', 'work_file', 'num_block', 'size_blok', 'shablon_file', 'active'):
                 if zapros[2]:
-                    if zapros[2].isdigit: zapros[2] = int(zapros[2])
                     await buttons_db.write(zapros[0], [zapros[1]], [zapros[2]])
                     await message.answer("Значение установлено")
                     await log(f'admin: {message.text}, ({message.from_user.username})\n')
@@ -202,5 +215,3 @@ async def adm_read_bd(message: types.Message):
 
     await message.answer("Данные обновлены из базы данных")
     await log(f'admin: {message.text}, ({message.from_user.username})\n')
-
-    # dp.register_message_handler(work_buttons, text=buttons_db.buttons_names)

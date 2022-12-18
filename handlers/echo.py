@@ -12,7 +12,6 @@ from work_vs_db.db_groups_buttons import groups_db
 async def echo(message: types.Message):
     user = await control(message)  # проверяем статус пользователя
     if user == "guest": return
-
     text_message = 'Для создания кнопок введи:\n'
     for group in buttons_db.buttons_groups:
         if groups_db.groups[group].hidden == 0:

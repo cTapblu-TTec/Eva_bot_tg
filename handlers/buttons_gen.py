@@ -65,6 +65,7 @@ async def create_buttons(message: types.Message):
     await message.answer(text_message, reply_markup=keyboard)
 
     await users_db.write(message.from_user.username, ['menu'], [group])
+    users_db.users[message.from_user.username].menu = group
 
 
 @dp.message_handler(commands=['del'])

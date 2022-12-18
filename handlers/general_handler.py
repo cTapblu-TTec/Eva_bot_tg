@@ -22,18 +22,19 @@ async def work_buttons(message: types.Message):
 
     button_name = message.text
     button = buttons_db.buttons[button_name]
+    username = message.from_user.username
     template = ''
     links = ''
     number = ''
     otm = False
     num = False
     tem = False
-    users_db.users[message.from_user.username].last_button = button_name
-    u = users_db.users[message.from_user.username]
+    users_db.users[username].last_button = button_name
+    u = users_db.users[username]
 
     #logger.info("2 - Номер блока")
 
-    # НОМЕР БЛОКА
+    # НОМЕР БЛОКА todo имя блока без номера
     if button.num_block != -1:
         if button.name_block is not None:
             number = f'{button.num_block} {button.name_block}\n'
@@ -47,8 +48,8 @@ async def work_buttons(message: types.Message):
     # ШАБЛОН
     if button.shablon_file is not None and button.shablon_file != 'gena.txt':
         template, u.n_zamen, u.n_last_shabl = await get_template(u.n_zamen, u.n_last_shabl, button.shablon_file)
-        users_db.users[message.from_user.username].n_zamen = u.n_zamen
-        users_db.users[message.from_user.username].n_last_shabl = u.n_last_shabl
+        users_db.users[username].n_zamen = u.n_zamen
+        users_db.users[username].n_last_shabl = u.n_last_shabl
         tem = True
     # ГЕНА
     elif button.shablon_file == 'gena.txt':
@@ -99,7 +100,7 @@ async def work_buttons(message: types.Message):
     if otm:  # если с отметками
         await f_db.write(button.work_file, 'n_line', f_db.files[button.work_file].num_line)
         # лог всегда дб последним действием!
-        await log(f'№ строки {message.text}: {num_line}, ({message.from_user.username})\n')
+        await log(f'№ строки {message.text}: {f_db.files[button.work_file].num_line}, ({message.from_user.username})\n')
         #logger.info("8 - Конец")
     else:
         await log(f'{message.text}, ({message.from_user.username})\n')

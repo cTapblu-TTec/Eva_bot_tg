@@ -50,7 +50,8 @@ class ButtonsDatabase:
                     CONSTRAINT buttons_pkey PRIMARY KEY (name)
                 );
                     """
-        async with self.pool.acquire(): await self.pool.execute(query)
+        async with self.pool.acquire():
+            await self.pool.execute(query)
 
         query = """
                 ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS specification varchar DEFAULT 'Описание кнопки';
@@ -66,7 +67,7 @@ class ButtonsDatabase:
             query = """INSERT INTO buttons (name, work_file) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING;"""
             for butt in buttons_names:
                 butt = butt.strip()
-                async with self.pool.acquire(): await self.pool.execute(query, butt, butt+'.txt')
+                async with self.pool.acquire(): await self.pool.execute(query, butt, butt + '.txt')
             buttons_names = await self.read('get_names_buttons', '')
 
         self.buttons = {i: await self.read('', i) for i in buttons_names}
@@ -113,19 +114,19 @@ class ButtonsDatabase:
             if butt:
                 butt = butt[0]
                 button = Button(
-                            name=button_name,
-                            group_buttons=butt['group_buttons'],
-                            work_file=butt['work_file'],
-                            num_block=butt['num_block'],
-                            size_blok=butt['size_blok'],
-                            name_block=butt['name_block'],
-                            shablon_file=butt['shablon_file'],
-                            active=butt['active'],
-                            sort=butt['sort'],
-                            hidden=butt['hidden'],
-                            users=butt['users'],
-                            specification=butt['specification']
-                            )
+                    name=button_name,
+                    group_buttons=butt['group_buttons'],
+                    work_file=butt['work_file'],
+                    num_block=butt['num_block'],
+                    size_blok=butt['size_blok'],
+                    name_block=butt['name_block'],
+                    shablon_file=butt['shablon_file'],
+                    active=butt['active'],
+                    sort=butt['sort'],
+                    hidden=butt['hidden'],
+                    users=butt['users'],
+                    specification=butt['specification']
+                )
             return button
 
     #
@@ -134,7 +135,8 @@ class ButtonsDatabase:
 
         if command == 'add_button':
             query = """INSERT INTO buttons (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
-            async with self.pool.acquire(): await self.pool.execute(query, button_name)
+            async with self.pool.acquire():
+                await self.pool.execute(query, button_name)
             self.buttons_names.append(button_name)
             query = """UPDATE buttons SET active = 1 WHERE name = $1;"""
             async with self.pool.acquire():
@@ -152,20 +154,20 @@ class ButtonsDatabase:
 
         elif command == 'n_block':
             query = """UPDATE buttons SET num_block = $2 WHERE name = $1;"""
-            async with self.pool.acquire(): await self.pool.execute(query, button_name, values)
+            async with self.pool.acquire():
+                await self.pool.execute(query, button_name, values)
 
         else:
             columns = command
             # ['name', 'group_buttons', 'work_file', 'num_block', 'size_blok', 'shablon_file', 'active']
 
             for i in range(len(columns)):
-                print(values[i])
-                if not values[i].isdigit():
-                    values[i] = "'" + values[i] + "'"
-                    print(values[i])
-                query = f"""UPDATE buttons SET {columns[i]} = {values[i]} WHERE name = $1;"""
-                print(query)
-                async with self.pool.acquire(): await self.pool.execute(query, button_name)
+                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null"):
+                    query = f"""UPDATE buttons SET {columns[i]} = NULL WHERE name = $1;"""
+                else:
+                    query = f"""UPDATE buttons SET {columns[i]} = '{values[i]}' WHERE name = $1;"""
+                async with self.pool.acquire():
+                    await self.pool.execute(query, button_name)
 
             button = await self.read('', button_name)
             self.buttons.update({button_name: button})

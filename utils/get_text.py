@@ -3,14 +3,29 @@ import random
 from utils.notify_admins import notify
 
 
-async def get_template(replacement_num, n_lasts_templates, file_template):
+Files: dict = {}  # имя файла: файл
+
+
+async def open_file(file: str):
     try:
-        with open('dir_files/'+file_template, 'r', encoding='utf-8') as file:
-            list_f = file.readlines()
-        with open('dir_files/name.txt', 'r', encoding='utf-8') as file:
-            list_re = file.readlines()
+        if file not in Files:
+            f = open('dir_files/'+file, 'r', encoding='utf-8')
+            Files[file] = f.readlines()
+            f.close()
+        if len(Files) >= 5:  # храним последние 5 файлов в памяти
+            for k in Files.keys():
+                Files.pop(k)
+                break
+        return Files[file]
     except Exception:
-        await notify(f'Файл {file_template} не читается')
+        await notify(f'Файл {file} не читается')
+        return None
+
+
+async def get_template(replacement_num, n_lasts_templates, file_template):
+    list_f = await open_file(file_template)
+    list_re = await open_file('name.txt')
+    if list_f is None or list_re is None:
         return f'Файл {file_template} не читается', replacement_num, n_lasts_templates
 
     num_line = random.randint(0, len(list_f) - 1)
@@ -58,13 +73,11 @@ async def get_template(replacement_num, n_lasts_templates, file_template):
 
 
 async def get_link_list(n_f_line: int, k: int, file: str):
-    try:  # todo держать в памяти последние 3 файла
-        with open('dir_files/'+file, 'r', encoding='utf-8') as f:
-            linesf = f.readlines()
-            len_f = len(linesf)
-    except Exception:
+    linesf = await open_file(file)
+    if linesf is None:
         await notify(f'Файл {file} не читается')
         return f'Файл не читается', n_f_line
+    len_f = len(linesf)
 
     text = ''
     for i in range(k):
