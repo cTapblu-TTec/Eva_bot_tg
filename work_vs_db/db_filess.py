@@ -35,7 +35,7 @@ class FilesDatabase:
 
         ff = await self.read('get_names_files', '')
         if not ff:
-            with open('files.txt', 'r', encoding='utf-8') as f: # encoding='utf-8-sig'
+            with open('files.txt', 'r', encoding='utf-8') as f:
                 ff = f.readlines()
             query = """INSERT INTO filess (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
             for file in ff:
@@ -46,7 +46,7 @@ class FilesDatabase:
         self.files = {i: await self.read('', i) for i in ff}
         self.files_names = []
         for name in ff:
-            self.files_names.append(name[:-4])
+            self.files_names.append(name[:-4])  # todo хранить имена вместе с .txt
 
     #
     # __________READ__________
@@ -82,14 +82,12 @@ class FilesDatabase:
             query = """INSERT INTO filess (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
             async with self.pool.acquire(): await self.pool.execute(query, file_name)
             self.files_names.append(file_name[:-4])
-            query = """UPDATE filess SET active = 1 WHERE name = $1;"""
-            async with self.pool.acquire(): await self.pool.execute(query, file_name)
 
             file = await self.read('', file_name)
             self.files.update({file_name: file})
 
         elif command == 'dell_file':
-            query = """UPDATE filess SET active = 0 WHERE name = $1;"""
+            query = """DELETE FROM filess WHERE name = $1;"""
             async with self.pool.acquire(): await self.pool.execute(query, file_name)
 
             self.files_names.remove(file_name[:-4])

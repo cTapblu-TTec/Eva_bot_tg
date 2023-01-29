@@ -30,13 +30,13 @@ class FileDatabase:
     # ______READ______
     async def read(self):
         query = 'SELECT * FROM files_id;'
-        async with self.pool.acquire(): F = await self.pool.fetch(query)
-        if F:
-            for i in F:
+        async with self.pool.acquire(): file = await self.pool.fetch(query)
+        if file:
+            for i in file:
                 self.files[i['file_name']] = i['file_id']
 
     # ______WRITE______
-    async def write(self, file_name:str, file_id:str):
+    async def write(self, file_name: str, file_id: str):
         # ДОБАВЛЕНИЕ в БД ФАЙЛА
         if self.files == {} or file_name not in self.files:
             query = """INSERT INTO files_id (file_id, file_name) VALUES ($1, $2) ON CONFLICT (file_name) DO NOTHING;"""
@@ -50,13 +50,13 @@ class FileDatabase:
 
 
 async def download(file_name: str):
-    dir = 'dir_files/'
-    file_id = files_id_db.files[file_name]  # берем id из базы
-    # получаем файл по id из телеграмма
+    dir_f = 'dir_files/'
     try:
+        file_id = files_id_db.files[file_name]  # берем id из базы
+        # получаем файл по id из телеграмма
         file = await dp.bot.get_file(file_id)
         file_path = file.file_path
-        await dp.bot.download_file(file_path, dir+file_name)
+        await dp.bot.download_file(file_path, dir_f + file_name)
     except Exception:
         await notify(f'Не удалось скачать файл с телеграмма: {file_name}')
 

@@ -1,3 +1,5 @@
+import asyncio
+
 from aiogram import types
 from data.config import ADMINS
 from utils.log import log
@@ -25,6 +27,5 @@ async def control(message: types.Message):
         else:
             username = message.from_user.id
         await stat_db.write('Гость', username)
-        await log(f'Гость: "{message.text}", ({username})\n')
-
+        await log.write(f'Гость: "{message.text}", ({username})\n')
     return user

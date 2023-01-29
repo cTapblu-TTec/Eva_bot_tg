@@ -9,7 +9,7 @@ from work_vs_db.db_groups_buttons import groups_db
 
 async def set_default_commands():
     # в меню где хелп втавить клавиатуры
-    commands = [types.BotCommand("help", "описание всех кнопок")]
+    commands = [types.BotCommand("start", "главное меню")]
 
     for group in buttons_db.buttons_groups:
         if groups_db.groups[group].hidden == 0:  # если не скрытая группа

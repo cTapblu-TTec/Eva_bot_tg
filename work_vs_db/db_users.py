@@ -104,9 +104,13 @@ class UsersDatabase:
             columns = command  # ['user_id', 'n_zamen', 'n_last_otm', 'n_last_shabl']
 
             for i in range(len(columns)):
-                if isinstance(values[i], str):
-                    values[i] = "'" + values[i] + "'"
-                query = f"""UPDATE users SET {columns[i]} = {values[i]} WHERE user_name = $1;"""
+                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null"):
+                    query = f"""UPDATE users SET {columns[i]} = NULL WHERE user_name = $1;"""
+
+                else:
+                    if isinstance(values[i], str):
+                        values[i] = "'" + values[i] + "'"
+                    query = f"""UPDATE users SET {columns[i]} = {values[i]} WHERE user_name = $1;"""
                 async with self.pool.acquire():
                     await self.pool.execute(query, user_name)
 

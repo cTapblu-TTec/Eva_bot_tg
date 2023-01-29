@@ -1,7 +1,12 @@
-from os import environ
+from os import getenv
+from dotenv import load_dotenv
 
-BOT_TOKEN = environ['BOT_TOKEN']
-ADMINS = environ['ADMINS'][1:-1].split(',')
-DATABASE_URL = environ['DATABASE_URL']+'?sslmode=require'
-LINUX = bool(environ['LINUX'])
-LOG_CHAT = int(environ['LOG_CHAT'])
+load_dotenv()
+BOT_TOKEN = getenv('BOT_TOKEN')
+ADMINS = getenv('ADMINS').split(',')
+DB_HOST = getenv('DB_HOST')
+DB_NAME = getenv('DB_NAME')
+DB_USER = getenv('DB_USER')
+DB_PASS = getenv('DB_PASS')
+LINUX = getenv('LINUX')
+LOG_CHAT = getenv('LOG_CHAT')

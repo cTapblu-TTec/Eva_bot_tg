@@ -1,12 +1,16 @@
-from . import general_handler
-from . import test
-from . import get_files
-from . import h_gena
-from . import adUser
-from . import admin_command
-from . import admin_menu
+from . import check_privat
 from . import buttons_gen
+from . import general_handler
+from . import user_settings
+from .admin_commands import get_files
+from .admin_commands import admin_command
+from .admin_commands import adUser
+from .admin_menu import admin_user_menu
+from .admin_menu import admin_settings_command
+from .admin_menu import admin_menu_groups
+from .admin_menu import admin_file_menu
+from .admin_menu import admin_button_menu
 from . import help
-
+from . import h_gena
+from . import test
 from . import echo
-

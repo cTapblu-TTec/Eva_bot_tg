@@ -14,12 +14,12 @@ async def description(message: types.Message):
     text = 'Описание кнопок:\n'
     for button in buttons_db.buttons:
         if buttons_db.buttons[button].hidden == 0:
-            text += f"{buttons_db.buttons[button].name} - {buttons_db.buttons[button].specification}\n"
+            text += f"• {buttons_db.buttons[button].name} - {buttons_db.buttons[button].specification}\n"
 
     if user == 'admin':
         text += '\nскрытые кнопки:\n'
         for button in buttons_db.buttons:
             if buttons_db.buttons[button].hidden == 1:
-                text += f"{buttons_db.buttons[button].name} - {buttons_db.buttons[button].specification}\n"
+                text += f"• {buttons_db.buttons[button].name} - {buttons_db.buttons[button].specification}\n"
 
     await message.answer(text)

@@ -4,13 +4,16 @@ import asyncpg
 from pytz import timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from data.config import LINUX, DATABASE_URL
-from filters.chek_buttons import ChekButtons, ChekGroupButtons, ChekButtonsForCallback
+from data.config import LINUX, DB_HOST, DB_NAME, DB_USER, DB_PASS
+from filters.chek_buttons import ChekButtons, ChekGroupButtons, CallChekGroupButtons
+from filters.callback_filters import ChekButtonsForCallback, ChekDellButton, ChekGroupsForCallback, ChekDellGroup, \
+    CallbackGroupValueFilter
 from loader import dp
 from middlewares.menu import MenuMid
 from utils.notify_admins import on_startup_notify
 from utils.set_bot_commands import set_default_commands
 from utils.reset import reset_statistics
+from work_vs_db.db_adm_chats import adm_chats_db
 from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_files_id import files_id_db
 from work_vs_db.db_filess import f_db
@@ -30,7 +33,7 @@ async def on_startup():
 
 def create_pool() -> asyncpg.Pool:
     if LINUX:
-        return asyncpg.create_pool(database='eva', user='bot', password='vga1600', host='localhost', max_size=20)
+        return asyncpg.create_pool(database=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST, max_size=20)
     else:
         return asyncpg.create_pool(database='abc', user='postgres', password='vga1600', host='localhost', max_size=20)
 
@@ -53,12 +56,21 @@ async def main():
     await stat_db.create(pool)
     await buttons_db.init(pool)
     await groups_db.create(pool)
+    await buttons_db.init(pool)
+    await adm_chats_db.init(pool)
 
     # _________START BOT________
     dp.middleware.setup(MenuMid())
+    # dp.middleware.setup(CallMiddle())
+    dp.filters_factory.bind(CallbackGroupValueFilter)
     dp.filters_factory.bind(ChekButtons)
     dp.filters_factory.bind(ChekGroupButtons)
+    dp.filters_factory.bind(CallChekGroupButtons)
     dp.filters_factory.bind(ChekButtonsForCallback)
+    dp.filters_factory.bind(ChekDellButton)
+    dp.filters_factory.bind(ChekGroupsForCallback)
+    dp.filters_factory.bind(ChekDellGroup)
+
     import handlers
     await on_startup()
     await dp.skip_updates()

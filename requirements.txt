@@ -1,6 +1,7 @@
-aiogram
+aiogram~=2.18
 asyncio
-asyncpg
-apscheduler
-pytz
-transliterate
+asyncpg~=0.25.0
+apscheduler~=3.8.1
+pytz~=2021.3
+python-dotenv~=0.19.2
+transliterate~=1.10.2

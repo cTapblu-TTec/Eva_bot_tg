@@ -47,6 +47,22 @@ class GroupsButtonsDatabase:
         self.groups = {i: await self.read(i) for i in buttons_db.buttons_groups}
         for group in self.groups:
             self.en_names_groups.append(self.groups[group].en_name)
+        await self.dell_old()
+
+    #
+    # __________DELETE OLD GROUPS__________
+    async def dell_old(self):
+
+        query = """SELECT * FROM groups_buttons;"""
+        async with self.pool.acquire():
+            groups_all = await self.pool.fetch(query)
+        if groups_all: groups_all = groups_all
+        query = ""
+        for group in groups_all:
+            if group['name'] not in self.groups:
+                query += f"DELETE FROM groups_buttons WHERE name = ('{group['name']}');"
+        if query != "":
+            async with self.pool.acquire(): await self.pool.execute(query)
 
     #
     # __________READ__________
@@ -73,16 +89,34 @@ class GroupsButtonsDatabase:
 
     #
     # __________WRITE__________
-    async def write(self, group_name: str, specification):
+    async def write(self, group_name: str, command, values=None):
+        if command == 'add_group':
+            # await self.dell_old()
+            query = """INSERT INTO groups_buttons (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
+            async with self.pool.acquire(): await self.pool.execute(query, group_name)
 
-        query = """INSERT INTO groups_buttons (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
-        async with self.pool.acquire(): await self.pool.execute(query, group_name)
+            group = await self.read(group_name)
+            self.groups.update({group_name: group})
 
-        query = f"""UPDATE groups_buttons SET specification = ({specification}) WHERE name = $1;"""
-        async with self.pool.acquire(): await self.pool.execute(query, group_name)
+        elif command == 'dell_group':
+            query = """DELETE FROM groups_buttons WHERE name = ($1);"""
+            async with self.pool.acquire():
+                await self.pool.execute(query, group_name)
+            self.groups.pop(group_name)
 
-        group = await self.read(group_name)
-        self.groups.update({group_name: group})
+        else:
+            columns = command
+            # ['name', 'group_buttons', 'work_file', 'num_block', 'size_blok', 'shablon_file', 'active']
+
+            for i in range(len(columns)):
+                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null"):
+                    query = f"""UPDATE groups_buttons SET {columns[i]} = NULL WHERE name = $1;"""
+                else:
+                    query = f"""UPDATE groups_buttons SET {columns[i]} = '{values[i]}' WHERE name = $1;"""
+                async with self.pool.acquire():
+                    await self.pool.execute(query, group_name)
+            group = await self.read(group_name)
+            self.groups.update({group_name: group})
 
     #
     # __________DELETE TABLE__________

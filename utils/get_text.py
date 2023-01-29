@@ -72,7 +72,7 @@ async def get_template(replacement_num, n_lasts_templates, file_template):
     return text, replacement_num, n_lasts_templates
 
 
-async def get_link_list(n_f_line: int, k: int, file: str):
+async def get_link_list(n_f_line: int, k: int, file: str, button: str):
     linesf = await open_file(file)
     if linesf is None:
         await notify(f'Файл {file} не читается')
@@ -84,7 +84,7 @@ async def get_link_list(n_f_line: int, k: int, file: str):
         if n_f_line >= len_f:
             # todo сюда добавить проверку что в основном файле есть еще отметки и загрузку из него нового кусочка 5000
             text += '\nсписок исчерпан'
-            await notify(f"{file} исчерпан")
+            await notify(f"{file} исчерпан ({button})")
             break
         if text != '' and text[-1] != '\n': text = text + '\n'
         text += str(linesf[n_f_line])

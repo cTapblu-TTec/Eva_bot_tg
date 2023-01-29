@@ -138,15 +138,12 @@ class ButtonsDatabase:
             async with self.pool.acquire():
                 await self.pool.execute(query, button_name)
             self.buttons_names.append(button_name)
-            query = """UPDATE buttons SET active = 1 WHERE name = $1;"""
-            async with self.pool.acquire():
-                await self.pool.execute(query, button_name)
 
             button = await self.read('', button_name)
             self.buttons.update({button_name: button})
 
         elif command == 'dell_button':
-            query = """UPDATE buttons SET active = 0 WHERE name = $1;"""
+            query = """DELETE FROM buttons WHERE name = $1;"""
             async with self.pool.acquire():
                 await self.pool.execute(query, button_name)
             self.buttons_names.remove(button_name)

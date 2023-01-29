@@ -28,6 +28,18 @@ class StatDatabase:
         for i in u:
             self.users_st.append(i[0])
 
+    # ______GET personal______
+    async def get_personal_stat(self, user_name):
+        query = 'SELECT * FROM statistic WHERE user_name = $1;'
+        async with self.pool.acquire():
+            stat = await self.pool.fetch(query, user_name)
+            result = ''
+            if stat:
+                for i in stat[0].keys():
+                    if isinstance(stat[0][i],int) and stat[0][i] > 0:
+                        result += f'\n{i} - {stat[0][i]}'
+        return result
+
     # ______GET HTML______
     async def get_html(self):
 
