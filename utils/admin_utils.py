@@ -1,4 +1,8 @@
+from loader import bot
+from utils.get_text import Files
+from utils.log import log
 from work_vs_db.db_buttons import buttons_db
+from work_vs_db.db_files_id import files_id_db, download_file_from_tg
 from work_vs_db.db_filess import f_db
 from work_vs_db.db_users import users_db
 
@@ -48,3 +52,31 @@ async def del_user(new_user, all_users):
         return f"Пользователь удален - {new_user}"
     else:
         return f"Пользователь не найден - {new_user}"
+
+
+async def download_sended_file(file_id, file_name):
+    dir_f = 'dir_files/'
+    reply_mess = ''
+    try:
+        file = await bot.get_file(file_id)
+        await bot.download_file(file_path=file.file_path, destination=dir_f + file_name)
+
+        with open(dir_f + file_name, 'r', encoding='utf-8') as f:
+            length = len(f.readlines())  # проверяем что файл читается
+        if length > 20000:
+            reply_mess += 'Файл очень большой, бот будет тормозить, рекомендуемый размер - 10000 строк'
+        # сохраняем новый id файла
+        await files_id_db.write(file_name, file_id)
+        # сохраняем длину файла
+        if file_name not in f_db.files:
+            await f_db.write(file_name, 'add_file', '')
+            await log.write(f"admin: файл '{file_name}' добавлен в базу")
+        await f_db.write(file_name, ['length'], [length])
+        # удаляем файл из пяти файлов в памяти
+        if file_name in Files: Files.pop(file_name)
+        return reply_mess, True
+
+    except (SyntaxError, UnicodeError):
+        reply_mess += 'Не удалось прочесть новый файл, проверьте кодировку'
+        await download_file_from_tg(file_name)  # скачиваем обратно старый файл
+        return reply_mess, False

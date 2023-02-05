@@ -33,8 +33,7 @@ async def create_menu_back(chat_id, text="Создано меню 'Назад'")
         if not chat.menu_back:
             await adm_chats_db.write(chat_id=chat_id, tools=['menu_back', 'menu_cancel'], values=['true', 'false'])
             create_task(dp.bot.send_message(chat_id=chat_id, text=text,
-                                      reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True).add('Назад',
-                                                                                                       '/settings')))
+                        reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True).add('Назад', '/settings')))
 
 
 async def create_menu_cancel(chat_id, text="Создано меню 'Отмена'"):
@@ -44,7 +43,7 @@ async def create_menu_cancel(chat_id, text="Создано меню 'Отмен�
         if not chat.menu_cancel:
             await adm_chats_db.write(chat_id=chat_id, tools=['menu_back', 'menu_cancel'], values=['false', 'true'])
             create_task(dp.bot.send_message(chat_id=chat_id, text=text,
-                                      reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True).add('Отмена')))
+                        reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True).add('Отмена')))
 
 
 async def edit_message(chat_id: int, type_menu: str, keyboard=None, text: str = '⁣'):
@@ -53,15 +52,19 @@ async def edit_message(chat_id: int, type_menu: str, keyboard=None, text: str = 
         if chat is None: return
         message_id = getattr(chat, type_menu)
         if message_id is None: return
-        with suppress():
-            create_task(dp.bot.edit_message_text(chat_id=chat_id, message_id=message_id, reply_markup=keyboard, text=text))
+        with suppress(Exception):
+            create_task(dp.bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                                                 reply_markup=keyboard, text=text))
 
 
-async def delete_all_after_time(chat_id: int, time: int = 30):
-    Data.time_saved = datetime.now().hour*100 + datetime.now().minute
-    await sleep(60*time)  # ждем time минут
-    time_now = datetime.now().hour*100 + datetime.now().minute
-    if time_now >= Data.time_saved + time:
-        types_m = ('id_msg_options', 'id_msg_tools', 'id_msg_values', 'id_msg_settings')
-        for type_menu in types_m:
-            await dellete_old_message(chat_id, type_menu)
+async def delete_all_after_time(_chat_id: int, _time: int = 30):
+    async def insert_def(chat_id: int, time: int = 30):
+        Data.time_saved = datetime.now().hour*100 + datetime.now().minute
+        await sleep(60*time)  # ждем time минут
+        time_now = datetime.now().hour*100 + datetime.now().minute
+        if time_now >= Data.time_saved + time:
+            types_m = ('id_msg_options', 'id_msg_tools', 'id_msg_values', 'id_msg_settings')
+            for type_menu in types_m:
+                await dellete_old_message(chat_id, type_menu)
+
+    create_task(insert_def(_chat_id, _time))

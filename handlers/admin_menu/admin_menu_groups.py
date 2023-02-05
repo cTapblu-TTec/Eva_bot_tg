@@ -3,7 +3,7 @@ from aiogram import types
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.dispatcher import FSMContext
 
-from filters.callback_filters import ChekGroupsForCallback, ChekDellGroup, CallbackGroupValueFilter
+from filters.admin_filters import CallFilterForGroupTools, CallFilterForGroupDell, CallFilterForGroupValue
 from utils.admin_menu_utils import dellete_old_message, create_menu_back, create_menu_cancel, edit_message, \
     delete_all_after_time
 from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -32,7 +32,7 @@ class FCM(StatesGroup):
 async def groups_keyboard():
     keyboard = InlineKeyboardMarkup(row_width=1)
     for group in groups_db.groups:
-        keyboard.add(InlineKeyboardButton(text=f'Настройка группы "{group}"', callback_data=group))
+        keyboard.add(InlineKeyboardButton(text=f'Настройка группы "{group}"', callback_data='g_tool/' + group))
     keyboard.add(InlineKeyboardButton(text='Про добавление групп', callback_data='add_group'))
     return keyboard
 
@@ -54,7 +54,7 @@ async def tools_gr_keyboard(group):
 
 #  ----====  ВЫБОР ГРУППЫ  ====----
 @dp.callback_query_handler(text="Настройка групп", state='*')
-async def settings_groups(call: types.CallbackQuery, state: FSMContext):
+async def groups_menu(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_back(call.message.chat.id)
     await dellete_old_message(chat_id=call.message.chat.id, type_menu='id_msg_options')
@@ -79,7 +79,7 @@ async def add_group(call: types.CallbackQuery, state: FSMContext):
 
 
 #  ----====  УДАЛИТЬ ГРУППУ ====----
-@dp.callback_query_handler(ChekDellGroup(), state='*')
+@dp.callback_query_handler(CallFilterForGroupDell(), state='*')
 async def dell_group(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     group = call.data.split('/')[1]
@@ -105,18 +105,19 @@ async def dell_group(call: types.CallbackQuery, state: FSMContext):
     else:
         await call.message.answer(f"Группа {group} не найдена")
     await call.answer()
-    await log.write(f"admin: Группа {group} удалена ({call.message.chat.username})\n")
+    await log.write(f"admin: Группа {group} удалена ({call.from_user.username})\n")
     await delete_all_after_time(call.message.chat.id)
 
 
 #  ----====  ВЫБОР ПАРАМЕТРА ГРУППЫ  ====----
-@dp.callback_query_handler(ChekGroupsForCallback(), state="*")
-async def settings_group_tool(call: types.CallbackQuery, state: FSMContext):
+@dp.callback_query_handler(CallFilterForGroupTools(), state="*")
+async def group_tool_menu(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_back(call.message.chat.id)
     await dellete_old_message(chat_id=call.message.chat.id, type_menu='id_msg_tools')
     # id_msg_tools
-    group = call.data
+    query = call.data.split('/')
+    group = query[1]
     keyboard = await tools_gr_keyboard(group)
     msg = await call.message.answer(f"Выберите параметр группы '{group}' для настройки:", reply_markup=keyboard)
     await adm_chats_db.write(chat_id=call.message.chat.id, tools=['id_msg_tools'], values=[msg["message_id"]])
@@ -127,8 +128,8 @@ async def settings_group_tool(call: types.CallbackQuery, state: FSMContext):
 
 
 #  ----====  ЗАПРОС ЗНАЧЕНИЯ  ====----
-@dp.callback_query_handler(CallbackGroupValueFilter())
-async def settings_group_value(call: types.CallbackQuery, state: FSMContext):
+@dp.callback_query_handler(CallFilterForGroupValue())
+async def group_ask_value(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_cancel(call.message.chat.id)
     # id_msg_value
@@ -158,7 +159,7 @@ async def settings_group_value(call: types.CallbackQuery, state: FSMContext):
 
 #  ----====  ЧТЕНИЕ ЗНАЧЕНИЯ  ====----
 @dp.message_handler(state=FCM.waite_value_group)
-async def settings_group_value_read(message: types.Message, state: FSMContext):
+async def group_read_value(message: types.Message, state: FSMContext):
     await state.finish()
     if message.text == 'Отмена':
         await create_menu_back(message.chat.id)

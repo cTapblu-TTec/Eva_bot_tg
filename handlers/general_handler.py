@@ -2,9 +2,8 @@ from asyncio import create_task
 
 from aiogram import types
 # from app import logger
-from filters.chek_buttons import ChekButtons
+from filters.users_filters import FilterForGeneral
 from loader import dp
-from utils.face_control import control
 from utils.gena import gennadij
 from utils.get_text import get_link_list, get_template
 from utils.log import log
@@ -15,11 +14,9 @@ from work_vs_db.db_stat import stat_db
 from work_vs_db.db_users import users_db
 
 
-@dp.message_handler(ChekButtons())
+@dp.message_handler(FilterForGeneral())
 async def work_buttons(message: types.Message):
     # logger.info("1 - Start handler")
-    user = await control(message)  # проверяем статус пользователя
-    if user == "guest": return
 
     button_name = message.text
     button = buttons_db.buttons[button_name]

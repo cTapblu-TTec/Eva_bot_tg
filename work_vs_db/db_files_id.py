@@ -22,7 +22,7 @@ class FileDatabase:
         async with self.pool.acquire(): await self.pool.execute(query)
         await self.read()
         for file in self.files:
-            await download(file)
+            await download_file_from_tg(file)
             # отрезать от файла использованное
             # добавить проверку что если в файле осталось больше 5000 неиспользованных строк, то из него
             # нужно вырезать кусок в 5000 строк
@@ -49,15 +49,16 @@ class FileDatabase:
             self.files[file_name] = file_id
 
 
-async def download(file_name: str):
+async def download_file_from_tg(file_name: str):
     dir_f = 'dir_files/'
-    try:
+    if file_name in files_id_db.files[file_name]:
         file_id = files_id_db.files[file_name]  # берем id из базы
-        # получаем файл по id из телеграмма
-        file = await dp.bot.get_file(file_id)
-        file_path = file.file_path
-        await dp.bot.download_file(file_path, dir_f + file_name)
-    except Exception:
-        await notify(f'Не удалось скачать файл с телеграмма: {file_name}')
+        try:
+            # получаем файл по id из телеграмма
+            file = await dp.bot.get_file(file_id)
+            file_path = file.file_path
+            await dp.bot.download_file(file_path, dir_f + file_name)
+        except Exception:
+            await notify(f'Не удалось скачать файл с телеграмма: {file_name}')
 
 files_id_db = FileDatabase()

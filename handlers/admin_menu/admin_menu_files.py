@@ -6,7 +6,8 @@ from utils.admin_menu_utils import dellete_old_message, create_menu_back, create
     delete_all_after_time
 
 from loader import dp
-from filters.callback_filters import ChekFilesForCallback
+from filters.admin_filters import CallFilterForFileValue
+from utils.admin_utils import download_sended_file
 from utils.log import log
 from work_vs_db.db_adm_chats import adm_chats_db
 from work_vs_db.db_filess import f_db
@@ -17,6 +18,7 @@ class FCM(StatesGroup):
     waite_file_name = State()
     waite_delete_file = State()
     waite_file_for_send = State()
+    waite_new_file = State()
 
 
 async def files_keyboard():
@@ -24,17 +26,56 @@ async def files_keyboard():
     for file in f_db.files:
         keyboard.add(
             InlineKeyboardButton(text=f'{file} --==-- {f_db.files[file].num_line} из {f_db.files[file].length}',
-                                 callback_data=file))
-    keyboard.add(InlineKeyboardButton(text='Добавить файл', callback_data='add_file'))
+                                 callback_data='f_value/' + file))
     keyboard.add(InlineKeyboardButton(text='Удалить файл', callback_data='dell_file'))
     keyboard.add(InlineKeyboardButton(text='Прислать файл с сервера', callback_data='send_file'))
+    keyboard.add(InlineKeyboardButton(text='Загрузить новый файл', callback_data='new_file'))
     keyboard.add(InlineKeyboardButton(text='Инструкция по загрузке файлов', callback_data='tutor_file'))
     return keyboard
 
 
+#  ----====  ЗАГРУЗИТЬ НОВЫЙ ФАЙЛ ====----
+@dp.callback_query_handler(text='new_file', state='*')
+async def new_file(call: types.CallbackQuery, state: FSMContext):
+    await state.finish()
+    await create_menu_cancel(call.message.chat.id, 'В этом режиме можете загрузить любой файл')
+    await dellete_old_message(chat_id=call.message.chat.id, type_menu='id_msg_tools')
+    await state.set_state(FCM.waite_new_file.state)
+    await call.answer()
+
+
+@dp.message_handler(state=FCM.waite_new_file, content_types=[types.ContentType.DOCUMENT])
+async def new_file_2(message: types.Message, state: FSMContext):
+    await state.finish()
+    await create_menu_back(message.chat.id)
+    reply_mess, file_ok = await download_sended_file(message.document.file_id, message.document.file_name)
+    if file_ok:
+        await message.answer(reply_mess + f'Новый файл загружен')
+        await log.write(f'admin: Загружен файл - {message.document.file_name}, ({message.from_user.username})')
+        await edit_message(chat_id=message.chat.id,
+                           type_menu='id_msg_options',
+                           keyboard=(await files_keyboard()),
+                           text=f"Файл '{message.document.file_name}' добавлен")
+    else:
+        await message.answer(reply_mess)
+
+
+@dp.message_handler(state=FCM.waite_new_file)
+async def new_file_2_2(message: types.Message, state: FSMContext):
+    await state.finish()
+    await create_menu_back(message.chat.id)
+
+
+@dp.callback_query_handler(state=FCM.waite_new_file)
+async def new_file_2_3(call: types.CallbackQuery, state: FSMContext):
+    await state.finish()
+    await create_menu_back(call.message.chat.id)
+    await call.answer()
+
+
 #  ----====  ВЫБОР ФАЙЛА  ====----
 @dp.callback_query_handler(text="Настройка файлов", state='*')
-async def settings_files(call: types.CallbackQuery, state: FSMContext):
+async def files_menu(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_back(call.message.chat.id)
     await dellete_old_message(chat_id=call.message.chat.id, type_menu='id_msg_options')
@@ -51,24 +92,28 @@ async def settings_files(call: types.CallbackQuery, state: FSMContext):
 
 #  ----====  ИНСТРУКЦИЯ ПО ОТПРАВКЕ ====----
 @dp.callback_query_handler(text='tutor_file', state='*')
-async def add_button(call: types.CallbackQuery, state: FSMContext):
+async def tutor_file(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_back(call.message.chat.id)
-    send = call.message.answer
     files = ".txt, ".join(f_db.files_names)
-    await send("- Вы можете отправить боту новые файлы для работы с ними. Бот вернет вам взамен новых старые с "
-               "информацией сколько строк отработано.\n- Заменить можно следующие файлы: "f"{files}.txt\n"
-               "- Если после замены файла бот стал неправильно работать, отправьте обратно боту старый файл, "
-               "разберитесь что не так с вашим файлом и снова попробуйте его загрузить.\n"
-               "- Если в файле есть русские символы, убедитесь что его кодировка - UTF8\n"
-               "- Это опасная функция которой можно сломать бота, пользуйтесь осторожно, следите за тем, что вы "
-               "загружаете.")
+    t = "Вы можете отправить боту файлы для работы с ними:\n " \
+        "1) При обычной отправке бот заменит старый файл с такимже именем и вернет вам его с " \
+        "информацией сколько строк отработано.\n" \
+        "(Заменить можно следующие файлы: "f"{files}.txt)\n" \
+        "2) В меню файлов есть режим 'Загрузить новый файл', после нажатия этой кнопки боту можно отправить файл," \
+        " которого раньше небыло.\n" \
+        "- Если после загрузки файла бот стал неправильно работать, отправьте обратно боту старый файл, " \
+        "разберитесь что не так с вашим файлом и снова попробуйте его загрузить.\n" \
+        "- Если в файле есть русские символы, убедитесь что его кодировка - UTF8\n" \
+        "- Это опасная функция которой можно сломать бота, пользуйтесь осторожно, следите за тем, что вы загружаете."
+    await call.message.answer(t)
     await call.answer()
 
 
 #  ----====  ДОБАВИТЬ ФАЙЛ  ====----
+'''
 @dp.callback_query_handler(text='add_file', state='*')
-async def add_button(call: types.CallbackQuery, state: FSMContext):
+async def add_file(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_cancel(call.message.chat.id)
     await call.message.answer("Введите имя файла")
@@ -77,7 +122,7 @@ async def add_button(call: types.CallbackQuery, state: FSMContext):
 
 
 @dp.message_handler(state=FCM.waite_file_name)
-async def add_button(message: types.Message, state: FSMContext):
+async def add_file_2(message: types.Message, state: FSMContext):
     await state.finish()
     await create_menu_back(message.chat.id)
     file_name = message.text
@@ -97,11 +142,12 @@ async def add_button(message: types.Message, state: FSMContext):
     except Exception:
         await message.answer(f"Файл '{file_name}' не удалось добавить")
         await log.write(f"admin: файл '{file_name}' не удалось добавить, ({message.from_user.username})\n")
+'''
 
 
 #  ----====  УДАЛИТЬ ФАЙЛ  ====----
 @dp.callback_query_handler(text='dell_file', state='*')
-async def dell_button(call: types.CallbackQuery, state: FSMContext):
+async def dell_file(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_cancel(call.message.chat.id)
     await dellete_old_message(chat_id=call.message.chat.id, type_menu='id_msg_tools')
@@ -120,14 +166,14 @@ async def dell_button(call: types.CallbackQuery, state: FSMContext):
 
 # Если вместо кнопки удаления пользователь что-то ввел
 @dp.message_handler(state=FCM.waite_delete_file)
-async def settings_button_tool(message: types.Message, state: FSMContext):
+async def dell_file_2_1(message: types.Message, state: FSMContext):
     await state.finish()
     await create_menu_back(message.chat.id)
     await dellete_old_message(chat_id=message.chat.id, type_menu='id_msg_tools')
 
 
 @dp.callback_query_handler(state=FCM.waite_delete_file)
-async def dell_button(call: types.CallbackQuery, state: FSMContext):
+async def dell_file_2(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_back(call.message.chat.id)
     await dellete_old_message(chat_id=call.message.chat.id, type_menu='id_msg_tools')
@@ -151,9 +197,9 @@ async def dell_button(call: types.CallbackQuery, state: FSMContext):
         await call.message.answer(f"Файл '{file_name}' не удалось удалить")
     await call.answer()
     if delete:
-        await log.write(f"admin: файл '{file_name}' удален, ({call.message.chat.username})\n")
+        await log.write(f"admin: файл '{file_name}' удален, ({call.from_user.username})\n")
     else:
-        await log.write(f"admin: файл '{file_name}' не удален, ({call.message.chat.username})\n")
+        await log.write(f"admin: файл '{file_name}' не удален, ({call.from_user.username})\n")
     await delete_all_after_time(call.message.chat.id)
 
 
@@ -199,27 +245,26 @@ async def send_file_2(call: types.CallbackQuery, state: FSMContext):
             with open('dir_files/' + file_name, 'rb') as f:
                 await call.message.answer_document(f, caption=f'{file_name} (использовано '
                                                               f'{f_db.files[file_name].num_line})')
-            await log.write(f"admin: файл '{file_name}' отправлен, ({call.message.chat.username})\n")
+            await log.write(f"admin: файл '{file_name}' отправлен, ({call.from_user.username})\n")
         else:
             await call.message.answer(f"Файл '{file_name}' не найден в базе")
-            await log.write(f"admin: файл '{file_name}' не найден в базе, ({call.message.chat.username})\n")
+            await log.write(f"admin: файл '{file_name}' не найден в базе, ({call.from_user.username})\n")
     except FileNotFoundError:
         await call.message.answer(f"Файл '{file_name}' не найден")
-        await log.write(f"admin: файл '{file_name}' не найден, ({call.message.chat.username})\n")
+        await log.write(f"admin: файл '{file_name}' не найден, ({call.from_user.username})\n")
     await call.answer()
     await delete_all_after_time(call.message.chat.id)
 
 
 #
 #  ----====  ЗАПРОС ЗНАЧЕНИЯ  ====----
-@dp.callback_query_handler(ChekFilesForCallback(), state='*')
-async def settings_button_tool(call: types.CallbackQuery, state: FSMContext):
+@dp.callback_query_handler(CallFilterForFileValue(), state='*')
+async def file_ask_value(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_cancel(call.message.chat.id)
-
-    file = call.data
+    query = call.data.split('/')
+    file = query[1]
     await adm_chats_db.write(chat_id=call.message.chat.id, tools=['tool'], values=[file])
-
     await call.message.answer(f"Введите № текущей строки для файла '{file}'")
     await state.set_state(FCM.waite_value_file.state)
     await call.answer()
@@ -228,7 +273,7 @@ async def settings_button_tool(call: types.CallbackQuery, state: FSMContext):
 
 #  ----====  ЧТЕНИЕ ЗНАЧЕНИЯ  ====----
 @dp.message_handler(state=FCM.waite_value_file)
-async def settings_button_tool(message: types.Message, state: FSMContext):
+async def file_read_value(message: types.Message, state: FSMContext):
     await state.finish()
     if message.text == 'Отмена':
         await create_menu_back(message.chat.id)

@@ -5,9 +5,8 @@ from pytz import timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from data.config import LINUX, DB_HOST, DB_NAME, DB_USER, DB_PASS
-from filters.chek_buttons import ChekButtons, ChekGroupButtons, CallChekGroupButtons
-from filters.callback_filters import ChekButtonsForCallback, ChekDellButton, ChekGroupsForCallback, ChekDellGroup, \
-    CallbackGroupValueFilter
+from filters.users_filters import registry_user_filters
+from filters.admin_filters import registry_admin_filters
 from loader import dp
 from middlewares.menu import MenuMid
 from utils.notify_admins import on_startup_notify
@@ -61,15 +60,8 @@ async def main():
 
     # _________START BOT________
     dp.middleware.setup(MenuMid())
-    # dp.middleware.setup(CallMiddle())
-    dp.filters_factory.bind(CallbackGroupValueFilter)
-    dp.filters_factory.bind(ChekButtons)
-    dp.filters_factory.bind(ChekGroupButtons)
-    dp.filters_factory.bind(CallChekGroupButtons)
-    dp.filters_factory.bind(ChekButtonsForCallback)
-    dp.filters_factory.bind(ChekDellButton)
-    dp.filters_factory.bind(ChekGroupsForCallback)
-    dp.filters_factory.bind(ChekDellGroup)
+    registry_admin_filters(dp)
+    registry_user_filters(dp)
 
     import handlers
     await on_startup()

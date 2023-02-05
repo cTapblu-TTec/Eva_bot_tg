@@ -75,7 +75,6 @@ async def get_template(replacement_num, n_lasts_templates, file_template):
 async def get_link_list(n_f_line: int, k: int, file: str, button: str):
     linesf = await open_file(file)
     if linesf is None:
-        await notify(f'Файл {file} не читается')
         return f'Файл не читается', n_f_line
     len_f = len(linesf)
 

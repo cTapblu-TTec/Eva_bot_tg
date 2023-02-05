@@ -1,9 +1,10 @@
 from aiogram import types
 
 from data.config import ADMINS
-from filters.chek_buttons import ChekGroupButtons, CallChekGroupButtons
-from utils.face_control import control
+from filters.users_filters import FilterForBattonsMenu, CallFilterForBattonsMenu
 from loader import dp
+from utils.face_control import control
+from work_vs_db.db_adm_chats import adm_chats_db
 from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_users import users_db
 
@@ -57,11 +58,11 @@ async def menu_keyboard(button_list, admin, dariasuv):
 
 # СОЗДАНИЕ НУЖНОГО  МЕНЮ
 
-@dp.message_handler(ChekGroupButtons())
+@dp.message_handler(FilterForBattonsMenu())
 async def create_buttons(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user == "guest": return
-
+    user = await control(message.from_user.id, message.from_user.username, message.text)
+    if user == 'admin':
+        await adm_chats_db.write(chat_id=message.chat.id, tools=['menu_back', 'menu_cancel'], values=['false', 'false'])
     # создаем список кнопок из нужной группы
     group = message.text
     button_list = await group_button_list(group, message.from_user.username, user == 'admin')
@@ -77,14 +78,14 @@ async def create_buttons(message: types.Message):
     users_db.users[message.from_user.username].menu = group
 
 
-@dp.callback_query_handler(CallChekGroupButtons())
+@dp.callback_query_handler(CallFilterForBattonsMenu())
 async def create_buttons_2(call: types.CallbackQuery):
     # создаем список кнопок из нужной группы
     query = call.data.split('/')
     group = query[1]
     is_admin = str(call.message.chat.id) in ADMINS
-    user = call.message.chat.username
-    button_list = await group_button_list(group, call.message.chat.username, is_admin)
+    user = call.from_user.username
+    button_list = await group_button_list(group, user, is_admin)
 
     keyboard = await menu_keyboard(button_list, is_admin, user == 'dariasuv')
 

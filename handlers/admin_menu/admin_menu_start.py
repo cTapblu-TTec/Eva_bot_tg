@@ -2,20 +2,15 @@ from aiogram.dispatcher import FSMContext
 from aiogram import types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from utils.admin_menu_utils import dellete_old_message, delete_all_after_time
+from utils.admin_menu_utils import dellete_old_message, delete_all_after_time, create_menu_back
 from loader import dp
-from utils.face_control import control
 from work_vs_db.db_adm_chats import adm_chats_db
 
 
 @dp.message_handler(commands='settings', state='*')
-async def settings_button(message: types.Message, state: FSMContext):
-    user = await control(message)  # проверяем статус пользователя
-    if user != "admin":
-        await message.answer("Вы не админ этого бота, извините")
-        return
-
+async def start_menu(message: types.Message, state: FSMContext):
     await state.finish()
+    await create_menu_back(message.chat.id)
     await dellete_old_message(message.chat.id, 'id_msg_settings')
 
     settings_buttons = ['Настройка кнопок', 'Настройка файлов', 'Настройка групп', 'Настройка пользователей']

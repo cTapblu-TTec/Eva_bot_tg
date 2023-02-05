@@ -2,7 +2,7 @@ import logging
 
 from aiogram import types
 
-from loader import dp
+from loader import bot
 from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_groups_buttons import groups_db
 
@@ -16,6 +16,6 @@ async def set_default_commands():
             commands.append(types.BotCommand(groups_db.groups[group].en_name, groups_db.groups[group].specification))
 
     try:
-        await dp.bot.set_my_commands(commands)
+        await bot.set_my_commands(commands)
     except Exception:
         logging.error(f"Команды не установились \n{commands=}")

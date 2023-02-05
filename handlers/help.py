@@ -8,8 +8,7 @@ from work_vs_db.db_buttons import buttons_db
 
 @dp.message_handler(CommandHelp())
 async def description(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user == "guest": return
+    user = await control(message.from_user.id, message.from_user.username, message.text)
 
     text = 'Описание кнопок:\n'
     for button in buttons_db.buttons:

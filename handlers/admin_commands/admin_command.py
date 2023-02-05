@@ -4,7 +4,6 @@ import sys
 from data.config import LOG_CHAT
 from loader import dp
 from utils.admin_utils import get_button_clicks
-from utils.face_control import control
 from utils.log import log
 from utils.notify_admins import notify
 from work_vs_db.db_buttons import buttons_db
@@ -16,10 +15,6 @@ from work_vs_db.db_users import users_db
 
 @dp.message_handler(commands=['admin'])
 async def adm_commands(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user != "admin":
-        await message.answer("Вы не админ этого бота, извините")
-        return
 
     await message.answer("/settings - кнопочная админка\n\n"
                          "/st - количество отметок и шаблонов\n"    
@@ -38,10 +33,6 @@ async def adm_commands(message: types.Message):
 
 @dp.message_handler(commands=['buttons'])
 async def adm_users(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user != "admin":
-        await message.answer("Вы не админ этого бота, извините")
-        return
 
     text = 'имя - отметки - осталось нажатий\n\n'
     for button in buttons_db.buttons:
@@ -57,10 +48,6 @@ async def adm_users(message: types.Message):
 
 @dp.message_handler(commands=['users'])
 async def adm_users(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user != "admin":
-        await message.answer("Вы не админ этого бота, извините")
-        return
 
     users_names = users_db.users_names
     num = len(users_names)
@@ -72,10 +59,6 @@ async def adm_users(message: types.Message):
 
 @dp.message_handler(commands=['st'])
 async def adm_stat(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user != "admin" and message.from_user.username != 'dariasuv':
-        await message.answer("Вы не админ этого бота, извините")
-        return
 
     stat = ''
     for file in f_db.files:
@@ -96,10 +79,6 @@ async def adm_stat(message: types.Message):
 
 @dp.message_handler(commands=['stUsers'])
 async def adm_stat_users(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user != "admin":
-        await message.answer("Вы не админ этого бота, извините")
-        return
 
     await stat_db.get_html()
     with open('statistic.html', 'rb') as file:
@@ -109,10 +88,6 @@ async def adm_stat_users(message: types.Message):
 
 @dp.message_handler(commands=['reStUr'])
 async def adm_reset_stat_users(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user != "admin":
-        await message.answer("Вы не админ этого бота, извините")
-        return
 
     await stat_db.dell()
     await stat_db.create(None)
@@ -122,10 +97,7 @@ async def adm_reset_stat_users(message: types.Message):
 
 @dp.message_handler(commands=['files'])
 async def adm_files(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user != "admin":
-        await message.answer("Вы не админ этого бота, извините")
-        return
+
     files = ".txt, ".join(f_db.files_names)
     await message.answer("- Вы можете отправить боту новые файлы для работы с ними. "
                          "Бот вернет вам взамен новых старые с информацией сколько строк отработано.\n"
@@ -143,10 +115,6 @@ async def adm_files(message: types.Message):
 
 @dp.message_handler(commands=['set'])
 async def adm_set_files(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user != "admin":
-        await message.answer("Вы не админ этого бота, извините")
-        return
 
     text = message.text[5:].strip()
     ass = False
@@ -170,10 +138,6 @@ async def adm_set_files(message: types.Message):
 
 @dp.message_handler(commands=['set_b'])
 async def adm_set_butt(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user != "admin":
-        await message.answer("Вы не админ этого бота, извините")
-        return
 
     text = message.text[7:].strip()
     ass = False
@@ -198,10 +162,6 @@ async def adm_set_butt(message: types.Message):
 
 @dp.message_handler(commands=['read_bd'])
 async def adm_read_bd(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user != "admin":
-        await message.answer("Вы не админ этого бота, извините")
-        return
 
     await f_db.create(None)
     await buttons_db.create()
@@ -213,10 +173,7 @@ async def adm_read_bd(message: types.Message):
 
 @dp.message_handler(commands=['exit'])
 async def adm_exit(message: types.Message):
-    user = await control(message)  # проверяем статус пользователя
-    if user != "admin":
-        await message.answer("Вы не админ этого бота, извините")
-        return
+
     await notify("БОТ ОСТАНОВЛЕН!")
     await dp.bot.send_message(LOG_CHAT, f"БОТ ОСТАНОВЛЕН!, ({message.from_user.username})")
     sys.exit()

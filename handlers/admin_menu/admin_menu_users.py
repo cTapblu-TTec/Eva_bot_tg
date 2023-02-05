@@ -28,9 +28,9 @@ async def users_keyboard():
     return keyboard
 
 
-#  ----====  ВЫБОР ГРУППЫ  ====----
+#  ----====  МЕНЮ ПОЛЬЗОВАТЕЛИ  ====----
 @dp.callback_query_handler(text="Настройка пользователей", state='*')
-async def settings_users(call: types.CallbackQuery, state: FSMContext):
+async def users_menu(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_back(call.message.chat.id)
     await dellete_old_message(chat_id=call.message.chat.id, type_menu='id_msg_options')
@@ -107,7 +107,7 @@ async def users_del_user_2(call: types.CallbackQuery, state: FSMContext):
     all_users = users_db.users_names
     answer = await del_user(new_user, all_users)
     await call.message.answer(answer)
-    await log.write(f'admin_menu: {answer}, ({call.message.chat.username})')
+    await log.write(f'admin_menu: {answer}, ({call.from_user.username})')
 
 
 #  ----====  СПИСОК ПОЛЬЗОВАТЕЛЕЙ  ====----
@@ -122,8 +122,8 @@ async def users_all_users(call: types.CallbackQuery, state: FSMContext):
     users = "\n".join(users_names)
     await call.message.answer(f'Всего {num} пользователей:\n{users}')
     await call.answer()
+    await log.write(f'admin_menu: список пользователей, ({call.from_user.username})')
     await delete_all_after_time(call.message.chat.id)
-    await log.write(f'admin_menu: список пользователей, ({call.message.chat.username})')
 
 
 #  ----====  СТАТИСТИКА ЗА СЕГОДНЯ  ====----
@@ -135,8 +135,8 @@ async def users_tooday_statistic(call: types.CallbackQuery, state: FSMContext):
     with open('statistic.html', 'rb') as file:
         await call.message.answer_document(file)
     await call.answer()
+    await log.write(f'admin_menu: статистика за сегодня, ({call.from_user.username})')
     await delete_all_after_time(call.message.chat.id)
-    await log.write(f'admin_menu: статистика за сегодня, ({call.message.chat.username})')
 
 
 #  ----====  СБРОС СТАТИСТИКИ ЗА СЕГОДНЯ  ====----
@@ -148,5 +148,5 @@ async def users_clear_statistic(call: types.CallbackQuery, state: FSMContext):
     await stat_db.create(None)
     await call.message.answer("Cтатистика за сегодня сброшена")
     await call.answer()
+    await log.write(f'admin_menu: сброс статистики за сегодня, ({call.from_user.username})')
     await delete_all_after_time(call.message.chat.id)
-    await log.write(f'admin_menu: сброс статистики за сегодня, ({call.message.chat.username})')

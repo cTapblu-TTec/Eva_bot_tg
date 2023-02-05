@@ -23,7 +23,7 @@ async def list_groups(user, admin):
 
 @dp.callback_query_handler(text='Волонтерство')
 async def groups_list(call: types.CallbackQuery):
-    username = call.message.chat.username
+    username = call.from_user.username
     is_admin = str(call.message.chat.id) in ADMINS
     not_hidden_groups, hidden_groups = await list_groups(username, is_admin)
 
@@ -51,7 +51,7 @@ async def settings_button(call: types.CallbackQuery):
 @dp.callback_query_handler(text='Ваша статистика за сегодня')
 async def user_stat(call: types.CallbackQuery):
 
-    user_name = call.message.chat.username
+    user_name = call.from_user.username
     head = 'Ваша статистика за сегодня:\nКнопка - нажатий\n'
     statistic = await stat_db.get_personal_stat(user_name)
     await call.message.answer(head + statistic)
@@ -62,7 +62,7 @@ async def user_stat(call: types.CallbackQuery):
 @dp.callback_query_handler(text='Описание кнопок')
 async def user_stat(call: types.CallbackQuery):
     text = 'кнопка (осталось нажатий) - описание:\n'
-    user_name = call.message.chat.username
+    user_name = call.from_user.username
 
     for button in buttons_db.buttons:
         cliks = await get_button_clicks(button)
@@ -92,4 +92,3 @@ async def user_stat(call: types.CallbackQuery):
 async def dell_menu(call: types.CallbackQuery):
     await call.message.answer('клавиатура удалена', reply_markup=types.ReplyKeyboardRemove())
     await call.answer()
-
