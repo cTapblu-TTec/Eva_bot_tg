@@ -1,7 +1,7 @@
 from asyncio import sleep, create_task
 
 from data.config import LOG_CHAT
-from loader import dp
+from loader import bot
 
 
 class Log:
@@ -9,8 +9,7 @@ class Log:
     sended = True
 
     async def write(self, text: str):
-        if text[:-1] != '\n':
-            text += '\n'
+        text += '\n\n'
         self.text += text  # накапливаем лог
         if self.sended:
             self.sended = False
@@ -28,7 +27,7 @@ class Log:
         mess = self.text  # это нужно чтобы очистить Лог как можно быстрее, для следующего запроса
         self.text = ''  # очищаем лог
         self.sended = True
-        await dp.bot.send_message(LOG_CHAT, mess)  # отправляем лог
+        await bot.send_message(LOG_CHAT, mess)  # отправляем лог
 
 
 log = Log()

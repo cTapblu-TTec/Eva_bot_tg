@@ -11,6 +11,7 @@ class AdmChat:
     id_msg_options: str
     id_msg_tools: str
     id_msg_values: str
+    id_msg_system: str
     menu_back: bool
     menu_cancel: bool
     setting: str
@@ -38,6 +39,7 @@ class AdmChatsDatabase:
                     id_msg_options varchar(30) DEFAULT NULL,
                     id_msg_tools varchar(30) DEFAULT NULL,
                     id_msg_values varchar(30) DEFAULT NULL,
+                    id_msg_system varchar(30) DEFAULT NULL,
                     menu_back boolean DEFAULT false,
                     menu_cancel boolean DEFAULT false,
                     setting varchar(30) DEFAULT NULL,
@@ -51,9 +53,7 @@ class AdmChatsDatabase:
         async with self.pool.acquire():
             await self.pool.execute(query)
 
-        all_chat_id = [int(chat_id) for chat_id in ADMINS]
-
-        self.chats = {chat_id: await self.read(chat_id) for chat_id in all_chat_id}
+        self.chats = {chat_id: await self.read(chat_id) for chat_id in ADMINS}
 
     #
     # __________READ__________
@@ -71,6 +71,7 @@ class AdmChatsDatabase:
                 id_msg_options=answer['id_msg_options'],
                 id_msg_tools=answer['id_msg_tools'],
                 id_msg_values=answer['id_msg_values'],
+                id_msg_system=answer['id_msg_system'],
                 menu_back=answer['menu_back'],
                 menu_cancel=answer['menu_cancel'],
                 setting=answer['setting'],
@@ -93,7 +94,7 @@ class AdmChatsDatabase:
         # print(query, chat_id)
 
         for i in range(len(tools)):
-            if values[i] in ("NONE", "None", "none", "NULL", "null", "Null"):
+            if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None):
                 query = f"""UPDATE adm_chats SET {tools[i]} = NULL WHERE chat_id = '{chat_id}';"""
             else:
                 query = f"""UPDATE adm_chats SET {tools[i]} = '{values[i]}' WHERE chat_id = '{chat_id}';"""

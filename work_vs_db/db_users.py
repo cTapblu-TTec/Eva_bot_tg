@@ -4,14 +4,14 @@ from dataclasses import dataclass
 
 @dataclass()
 class User:
-    # user_name: str
+    user_stat_name: str
     # user_id: int
     n_zamen: int
-    # n_last_otm: tuple
     n_last_shabl: tuple
     # status: str - хочу добавить кураторов
     menu: str
     last_button: str
+    blocks: int
 
 
 class UsersDatabase:
@@ -25,21 +25,25 @@ class UsersDatabase:
         query = """CREATE TABLE IF NOT EXISTS public.users
                     (
                         user_name character varying(30) COLLATE pg_catalog."default" NOT NULL,
+                        user_stat_name varchar DEFAULT NULL,
                         user_id integer,
                         n_zamen integer DEFAULT 0,
                         n_last_shabl varchar,
+                        menu varchar DEFAULT NULL,
+                        last_button varchar DEFAULT NULL,
                         status VARCHAR COLLATE pg_catalog."default" DEFAULT 'user',
+                        blocks smallint NOT NULL DEFAULT 1, CHECK (blocks >= 1 AND blocks <= 10),
                         CONSTRAINT "Users_pkey" PRIMARY KEY (user_name)
                     ); """
         async with self.pool.acquire():
             await self.pool.execute(query)
 
         query = """
-                ALTER TABLE public.users ADD COLUMN IF NOT EXISTS menu varchar DEFAULT NULL;
-                ALTER TABLE public.users ADD COLUMN IF NOT EXISTS last_button varchar DEFAULT NULL;
+                ALTER TABLE public.users ADD COLUMN IF NOT EXISTS blocks smallint NOT NULL DEFAULT 1;
+                ALTER TABLE public.users ADD CHECK (blocks >= 1 AND blocks <= 10);
+                ALTER TABLE public.users ADD COLUMN IF NOT EXISTS user_stat_name varchar DEFAULT NULL;
                """
-        async with self.pool.acquire():
-            await self.pool.execute(query)
+        #  async with self.pool.acquire(): await self.pool.execute(query)
 
         names = await self.read('get_names_users', '')
         if not names:
@@ -75,10 +79,12 @@ class UsersDatabase:
             if u:
                 u = u[0]
                 user = User(
+                    user_stat_name=u['user_stat_name'],
                     n_zamen=u['n_zamen'],
                     n_last_shabl=u['n_last_shabl'],
                     menu=u['menu'],
-                    last_button=u['last_button']
+                    last_button=u['last_button'],
+                    blocks=u['blocks']
                 )
             return user
 
@@ -104,7 +110,7 @@ class UsersDatabase:
             columns = command  # ['user_id', 'n_zamen', 'n_last_otm', 'n_last_shabl']
 
             for i in range(len(columns)):
-                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null"):
+                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None):
                     query = f"""UPDATE users SET {columns[i]} = NULL WHERE user_name = $1;"""
 
                 else:

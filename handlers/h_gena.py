@@ -10,4 +10,4 @@ async def gena(message: types.Message):
 
     text = await gennadij.get_text()
     await message.answer(text)
-    await log(f'admin: {message.text}, ({message.from_user.username})\n')
+    await log(f'{message.text}, ({message.from_user.username})')

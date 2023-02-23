@@ -2,6 +2,7 @@ from data.config import LOG_CHAT
 from loader import dp
 from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_stat import stat_db
+from utils.face_control import Guests
 
 
 async def reset_statistics():
@@ -16,3 +17,4 @@ async def reset_statistics():
         if buttons_db.buttons[button].num_block != -1:
             await buttons_db.write(button, 'n_block', 1)
             buttons_db.buttons[button].num_block = 1
+    Guests.guests = {}

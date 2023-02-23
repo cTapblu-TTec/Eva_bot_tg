@@ -10,7 +10,7 @@ from work_vs_db.db_groups_buttons import groups_db
 
 class FilterForStart(BoundFilter):
     async def check(self, message: types.Message):
-        user = await control(message.from_user.id, message.from_user.username, message.text)
+        user = await control(message.from_user.id, message.from_user.username)
         if user == "user":
             return True
         return False
@@ -18,7 +18,7 @@ class FilterForStart(BoundFilter):
 
 class FilterForGuest(BoundFilter):
     async def check(self, message: types.Message):
-        user = await control(message.from_user.id, message.from_user.username, message.text)
+        user = await control(message.from_user.id, message.from_user.username)
         if user == "guest":
             return True
         return False
@@ -38,7 +38,7 @@ class FilterForBattonsMenu(BoundFilter):
             if groups_db.groups[group].hidden == 0:
                 return True
             else:
-                if str(message.from_user.id) in ADMINS:
+                if message.from_user.id in ADMINS:
                     return True
                 if groups_db.groups[group].users and \
                         message.from_user.username in groups_db.groups[group].users:
@@ -56,7 +56,7 @@ class CallFilterForBattonsMenu(BoundFilter):
                     if groups_db.groups[group].hidden == 0:
                         return True
                     else:
-                        if str(callback.message.chat.id) in ADMINS:
+                        if callback.message.chat.id in ADMINS:
                             return True
                         if groups_db.groups[group].users and \
                                 callback.message.chat.username in groups_db.groups[group].users:
@@ -68,7 +68,7 @@ class CallFilterForBattonsMenu(BoundFilter):
 class CallFilterForError(BoundFilter):
     async def check(self, callback: types.CallbackQuery):
         # проверяем статус пользователя
-        if str(callback.message.chat.id) not in ADMINS:
+        if callback.message.chat.id not in ADMINS:
             return True
         return False
 
@@ -76,9 +76,18 @@ class CallFilterForError(BoundFilter):
 class CallFilterForGuest(BoundFilter):
     async def check(self, callback: types.CallbackQuery):
         # проверяем статус пользователя
-        user = await control(callback.from_user.id, callback.from_user.username, callback.data)
+        user = await control(callback.from_user.id, callback.from_user.username)
         if user == "guest":
             return True
+        return False
+
+
+class CallFilterForBlocksUser(BoundFilter):
+    async def check(self,  callback: types.CallbackQuery):
+        if '/' in callback.data[1:]:
+            query = callback.data.split('/')
+            if query[0] == 'u_blocks':
+                return True
         return False
 
 
@@ -90,3 +99,4 @@ def registry_user_filters(dp: Dispatcher):
     dp.filters_factory.bind(FilterForStart)
     dp.filters_factory.bind(CallFilterForError)
     dp.filters_factory.bind(CallFilterForGuest)
+    dp.filters_factory.bind(CallFilterForBlocksUser)

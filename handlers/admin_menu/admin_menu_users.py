@@ -3,12 +3,14 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from utils.admin_menu_utils import dellete_old_message, create_menu_back, delete_all_after_time, create_menu_cancel
+from filters.admin_filters import CallFilterForAddUser, CallFilterForDelUser
+from utils.admin_menu_utils import create_menu_back, delete_all_after_time, create_menu_cancel, \
+    delete_loue_level_menu, create_level_menu
 
 from loader import dp
 from utils.admin_utils import add_user, del_user
+from utils.face_control import Guests
 from utils.log import log
-from work_vs_db.db_adm_chats import adm_chats_db
 from work_vs_db.db_stat import stat_db
 from work_vs_db.db_users import users_db
 
@@ -28,125 +30,192 @@ async def users_keyboard():
     return keyboard
 
 
+async def guests_keyboard():
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    if Guests.guests:
+        for guest_id in Guests.guests:
+            keyboard.add(InlineKeyboardButton(
+                text=f'добавить {guest_id} - {Guests.guests[guest_id]}',
+                callback_data=f'add_guest/{guest_id}/{Guests.guests[guest_id]}'
+            ))
+    else:
+        return None
+    return keyboard
+
+
 #  ----====  МЕНЮ ПОЛЬЗОВАТЕЛИ  ====----
 @dp.callback_query_handler(text="Настройка пользователей", state='*')
 async def users_menu(call: types.CallbackQuery, state: FSMContext):
+    type_menu = 'id_msg_options'
+    text = "Настройка пользователей:"
+    chat_id = call.message.chat.id
+    keyboard = await users_keyboard()
+
     await state.finish()
     await create_menu_back(call.message.chat.id)
-    await dellete_old_message(chat_id=call.message.chat.id, type_menu='id_msg_options')
-    # id_msg_options
-    keyboard = await users_keyboard()
-    msg = await call.message.answer("Настройка пользователей:", reply_markup=keyboard)
-
-    await adm_chats_db.write(chat_id=call.message.chat.id, tools=['id_msg_options'], values=[msg["message_id"]])
+    await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
+    await create_level_menu(chat_id=chat_id, level=type_menu, text=text, keyboard=keyboard)
     await call.answer()
-    await dellete_old_message(chat_id=call.message.chat.id, type_menu='id_msg_tools')
-    await dellete_old_message(chat_id=call.message.chat.id, type_menu='id_msg_values')
-    await delete_all_after_time(call.message.chat.id)
+    await delete_all_after_time(chat_id)
 
 
 #  ----====  ДОБАВИТЬ ПОЛЬЗОВАТЕЛЯ  ====----
 @dp.callback_query_handler(text="add_user", state='*')
 async def users_add_user(call: types.CallbackQuery, state: FSMContext):
+    type_menu = 'id_msg_tools'
+    chat_id = call.message.chat.id
+    keyboard = await guests_keyboard()
+    text1 = "Введите имя нового пользователя"
+    text2 = " или выберите из гостей:"
+
     await state.finish()
-    await create_menu_cancel(call.message.chat.id)
-    await call.message.answer("Введите имя пользователя")
+    await create_menu_cancel(chat_id)
+    await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
+    if keyboard:
+        await create_level_menu(chat_id=chat_id, level=type_menu, text=text1+text2, keyboard=keyboard)
+    else:
+        await create_level_menu(chat_id=chat_id, level=type_menu, text=text1)
     await state.set_state(FCM.waite_user_name.state)
     await call.answer()
-    await delete_all_after_time(call.message.chat.id)
+    await delete_all_after_time(chat_id)
+
+
+@dp.callback_query_handler(CallFilterForAddUser(), state=FCM.waite_user_name)
+async def users_add_user_2(call: types.CallbackQuery, state: FSMContext):
+    type_menu = 'id_msg_tools'
+    chat_id = call.message.chat.id
+    query = call.data.split('/')
+    user_name = query[2]
+
+    await state.finish()
+    await create_menu_back(chat_id)
+    await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
+    if user_name:
+        new_user = user_name
+        all_users = users_db.users_names
+        answer = await add_user(new_user, all_users)
+        # удалить из гостей
+        Guests.guests.pop(int(query[1]))
+        await create_level_menu(chat_id=chat_id, level=type_menu, text=answer)
+        await log.write(f'admin_menu: {answer}, ({call.from_user.username})')
+    else:
+        await create_level_menu(chat_id=chat_id, level=type_menu, text='У пользователя должно быть @user_name')
+    await call.answer()
+    await delete_all_after_time(chat_id)
 
 
 @dp.message_handler(state=FCM.waite_user_name)
 async def users_add_user_2(message: types.Message, state: FSMContext):
-    await state.finish()
-    await create_menu_back(message.chat.id)
+    type_menu = 'id_msg_tools'
+    chat_id = message.chat.id
     new_user = message.text
     all_users = users_db.users_names
     answer = await add_user(new_user, all_users)
-    await message.answer(answer)
+
+    await state.finish()
+    await create_menu_back(chat_id)
+    await delete_loue_level_menu(chat_id=message.chat.id, type_menu='id_msg_tools')
+    await create_level_menu(chat_id=chat_id, level=type_menu, text=answer)
     await log.write(f'admin_menu: {answer}, ({message.from_user.username})')
+    await delete_all_after_time(chat_id)
 
 
 #  ----====  УДАЛИТЬ ПОЛЬЗОВАТЕЛЯ  ====----
 @dp.callback_query_handler(text='del_user', state='*')
 async def users_del_user(call: types.CallbackQuery, state: FSMContext):
+    def del_user_keyb():
+        all_users = users_db.users_names
+        keyb = InlineKeyboardMarkup(row_width=1)
+        for user in all_users:
+            keyb.add(InlineKeyboardButton(text=f"Удалить {user}", callback_data=f'del_user/{user}'))
+        keyb.add(InlineKeyboardButton(text='Отмена', callback_data='Отмена'))
+        return keyb
+
+    type_menu = 'id_msg_tools'
+    text = "Выберите пользователя для удаления"
+    chat_id = call.message.chat.id
+    keyboard = del_user_keyb()
+
     await state.finish()
-    await create_menu_cancel(call.message.chat.id)
-    await dellete_old_message(chat_id=call.message.chat.id, type_menu='id_msg_tools')
-
-    all_users = users_db.users_names
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    for user in all_users:
-        keyboard.add(InlineKeyboardButton(text=f"Удалить {user}", callback_data=user))
-    keyboard.add(InlineKeyboardButton(text='Отмена', callback_data='Отмена'))
-    msg = await call.message.answer("Выберите пользователя для удаления", reply_markup=keyboard)
-
-    await adm_chats_db.write(chat_id=call.message.chat.id, tools=['id_msg_tools'], values=[msg["message_id"]])
+    await create_menu_cancel(chat_id)
+    await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
+    await create_level_menu(chat_id=chat_id, level=type_menu, text=text, keyboard=keyboard)
     await state.set_state(FCM.waite_delete_user.state)
     await call.answer()
-    await delete_all_after_time(call.message.chat.id)
+    await delete_all_after_time(chat_id)
 
 
-# Если вместо кнопки удаления пользователь что-то ввел
-@dp.message_handler(state=FCM.waite_delete_user)
-async def users_del_user_2_mess(message: types.Message, state: FSMContext):
-    await state.finish()
-    await create_menu_back(message.chat.id)
-    await dellete_old_message(chat_id=message.chat.id, type_menu='id_msg_tools')
-
-
-@dp.callback_query_handler(state=FCM.waite_delete_user)
+@dp.callback_query_handler(CallFilterForDelUser(), state=FCM.waite_delete_user)
 async def users_del_user_2(call: types.CallbackQuery, state: FSMContext):
-    await state.finish()
-    await create_menu_back(call.message.chat.id)
-    await dellete_old_message(chat_id=call.message.chat.id, type_menu='id_msg_tools')
-    if call.data == 'Отмена':
-        return
-
-    new_user = call.data
+    type_menu = 'id_msg_tools'
+    chat_id = call.message.chat.id
+    query = call.data.split('/')
+    user = query[1]
     all_users = users_db.users_names
-    answer = await del_user(new_user, all_users)
-    await call.message.answer(answer)
+    answer = await del_user(user, all_users)
+
+    await state.finish()
+    await create_menu_back(chat_id)
+    await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
+    await create_level_menu(chat_id=chat_id, level=type_menu, text=answer)
     await log.write(f'admin_menu: {answer}, ({call.from_user.username})')
+    await call.answer()
+    await delete_all_after_time(chat_id)
 
 
 #  ----====  СПИСОК ПОЛЬЗОВАТЕЛЕЙ  ====----
 @dp.callback_query_handler(text="all_users", state='*')
 async def users_all_users(call: types.CallbackQuery, state: FSMContext):
-    await state.finish()
-    await create_menu_back(call.message.chat.id)
+    def list_all_users():
+        users_names = users_db.users_names
+        num = len(users_names)
+        users_names.sort(key=str.lower)
+        users = "\n".join(users_names)
+        return f'Всего {num} пользователей:\n{users}'
 
-    users_names = users_db.users_names
-    num = len(users_names)
-    users_names.sort(key=str.lower)
-    users = "\n".join(users_names)
-    await call.message.answer(f'Всего {num} пользователей:\n{users}')
+    type_menu = 'id_msg_tools'
+    chat_id = call.message.chat.id
+    answer = list_all_users()
+
+    await state.finish()
+    await create_menu_back(chat_id)
+    await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
+    await create_level_menu(chat_id=chat_id, level=type_menu, text=answer)
     await call.answer()
     await log.write(f'admin_menu: список пользователей, ({call.from_user.username})')
-    await delete_all_after_time(call.message.chat.id)
+    await delete_all_after_time(chat_id)
 
 
 #  ----====  СТАТИСТИКА ЗА СЕГОДНЯ  ====----
 @dp.callback_query_handler(text="tooday_statistic", state='*')
 async def users_tooday_statistic(call: types.CallbackQuery, state: FSMContext):
+    type_menu = 'id_msg_tools'
+    chat_id = call.message.chat.id
+
     await state.finish()
-    await create_menu_back(call.message.chat.id)
+    await create_menu_back(chat_id)
+    await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
     await stat_db.get_html()
     with open('statistic.html', 'rb') as file:
         await call.message.answer_document(file)
     await call.answer()
     await log.write(f'admin_menu: статистика за сегодня, ({call.from_user.username})')
-    await delete_all_after_time(call.message.chat.id)
+    await delete_all_after_time(chat_id)
 
 
 #  ----====  СБРОС СТАТИСТИКИ ЗА СЕГОДНЯ  ====----
 @dp.callback_query_handler(text="clear_statistic", state='*')
 async def users_clear_statistic(call: types.CallbackQuery, state: FSMContext):
+    type_menu = 'id_msg_tools'
+    chat_id = call.message.chat.id
+    answer = "Cтатистика за сегодня сброшена"
+
     await state.finish()
-    await create_menu_back(call.message.chat.id)
+    await create_menu_back(chat_id)
     await stat_db.dell()
     await stat_db.create(None)
-    await call.message.answer("Cтатистика за сегодня сброшена")
+    await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
+    await create_level_menu(chat_id=chat_id, level=type_menu, text=answer)
     await call.answer()
     await log.write(f'admin_menu: сброс статистики за сегодня, ({call.from_user.username})')
-    await delete_all_after_time(call.message.chat.id)
+    await delete_all_after_time(chat_id)

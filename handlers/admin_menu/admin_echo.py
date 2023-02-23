@@ -2,9 +2,8 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from utils.admin_menu_utils import create_menu_back
+from utils.admin_menu_utils import create_menu_back, delete_last_menu
 from loader import dp
-from utils.log import log
 
 
 # Эхо хендлер, куда летят текстовые сообщения без указанного состояния
@@ -21,12 +20,13 @@ async def echo(message: types.Message):
 # Эхо хендлер, куда летят не обработанные калбеки (ошибки)
 @dp.callback_query_handler(state='*')
 async def errors_call(call: types.CallbackQuery, state: FSMContext):
+    # st = await state.get_state()
     await state.finish()
     await create_menu_back(call.message.chat.id)
-    state = await state.get_state()
-    await call.message.answer("Что-то пошло не так, нажмите /settings")
-    print(f'Ошибка кнопок, call.data: {call.data}, state:', state)
-    await log.write(f"Ошибка кнопок, call.data: '{call.data}' ({call.from_user.username})\n")
+    await delete_last_menu(call.message.chat.id)
+    # await call.message.answer("Что-то пошло не так, нажмите /settings")
+    # print(f'Ошибка кнопок, call.data: {call.data}, state:', st)
+    # await log.write(f"Ошибка кнопок, call.data: '{call.data}', state:', {st} ({call.from_user.username})")
     await call.answer()
 
 
@@ -35,6 +35,7 @@ async def errors_call(call: types.CallbackQuery, state: FSMContext):
 async def errors_mess(message: types.Message, state: FSMContext):
     await state.finish()
     await create_menu_back(message.chat.id)
-    await message.answer("Что-то пошло не так, нажмите /settings")
-    print(f'admin: Ошибка сообщений, message: {message.text}, state:', state)
-    await log.write(f"admin: Ошибка кнопок, message: '{message.text}' ({message.from_user.username})\n")
+    await delete_last_menu(message.chat.id)
+    # await message.answer("Что-то пошло не так, нажмите /settings")
+    # print(f'admin: Ошибка сообщений, message: {message.text}, state:', state)
+    # await log.write(f"admin: Ошибка кнопок, message: '{message.text}' ({message.from_user.username})")

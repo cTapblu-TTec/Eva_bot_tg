@@ -2,6 +2,8 @@ import asyncpg
 from datetime import datetime
 from pytz import timezone
 
+from work_vs_db.db_users import users_db
+
 
 class StatDatabase:
     columns: list = []  # список столбцов в статистике
@@ -84,18 +86,37 @@ class StatDatabase:
             <caption>""" + dtime + """</caption>"""
 
         columns = '\n\t\t\t<tr>'
-
         if stat:
-            for i in stat[0].keys():
-                columns += '<th>' + i + '</th>'
+            for column in stat[0].keys():
+                columns += '<th>' + column + '</th>'
             columns += '</tr>'
 
+        statistic = {}
+        for user in stat:
+            user_name = user['user_name']
+            if users_db.users[user_name].user_stat_name:
+                user_stat_name = users_db.users[user_name].user_stat_name
+            else:
+                user_stat_name = user_name
+            user_stat = list(user)[1:]
+            if not statistic.get(user_stat_name):
+                statistic[user_stat_name] = user_stat
+            else:
+                i = 0
+                for clics in statistic[user_stat_name]:
+                    user_stat[i] += clics
+                    i += 1
+                statistic[user_stat_name] = user_stat
+        sort_stat = {}
+        for user in statistic:
+            sort_stat[user] = sum(statistic[user])
+        sort_stat = dict(sorted(sort_stat.items(),key=lambda item: item[1],reverse=True))
         table = ''
-        for i in stat:
-            i = list(i)
+        for user in sort_stat:
             table += '\n\t\t\t<tr>'
-            for j in i:
-                table += '<td>' + str(j) + '</td>'
+            table += '<td>' + user + '</td>'
+            for clics in statistic[user]:
+                table += '<td>' + str(clics) + '</td>'
             table += '</tr>'
         close = """
             </table>
@@ -109,9 +130,9 @@ class StatDatabase:
 
     # ______WRITE______
     #   ведение statistic
-    async def write(self, command: str, user_name: str):
+    async def write(self, button_name, user_name: str, blocks: int):
 
-        stolbec = command.replace(' ', '_')
+        button_name = button_name.replace(' ', '_')
 
         # ДОБАВЛЕНИЕ в БД пользователя
         if self.users_st == [] or user_name not in self.users_st:
@@ -120,14 +141,14 @@ class StatDatabase:
             self.users_st.append(user_name)
 
         # ДОБВЛЕНИЕ СТОЛБЦА
-        if stolbec not in self.columns:
-            query = f"""ALTER TABLE public.statistic ADD COLUMN IF NOT EXISTS {stolbec} smallint DEFAULT 0;"""
+        if button_name not in self.columns:
+            query = f"""ALTER TABLE public.statistic ADD COLUMN IF NOT EXISTS {button_name} smallint DEFAULT 0;"""
 
             async with self.pool.acquire(): await self.pool.execute(query)
-            self.columns.append(stolbec)
+            self.columns.append(button_name)
 
         # ОБНОВЛЕНИЕ статистики пользователя
-        query = f"""UPDATE statistic SET {stolbec} = {stolbec} + 1 WHERE user_name = $1;"""
+        query = f"""UPDATE statistic SET {button_name} = {button_name} + {blocks} WHERE user_name = $1;"""
         async with self.pool.acquire(): await self.pool.execute(query, user_name)
 
     # ______CLEAR______

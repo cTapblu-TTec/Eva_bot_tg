@@ -3,7 +3,6 @@ from aiogram import types
 from data.config import ADMINS
 from filters.users_filters import FilterForBattonsMenu, CallFilterForBattonsMenu
 from loader import dp
-from utils.face_control import control
 from work_vs_db.db_adm_chats import adm_chats_db
 from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_users import users_db
@@ -57,45 +56,40 @@ async def menu_keyboard(button_list, admin, dariasuv):
 
 
 # СОЗДАНИЕ НУЖНОГО  МЕНЮ
-
+# по кнопке "Назад" - прилетает сюда
 @dp.message_handler(FilterForBattonsMenu())
 async def create_buttons(message: types.Message):
-    user = await control(message.from_user.id, message.from_user.username, message.text)
-    if user == 'admin':
-        await adm_chats_db.write(chat_id=message.chat.id, tools=['menu_back', 'menu_cancel'], values=['false', 'false'])
-    # создаем список кнопок из нужной группы
+    user_name = message.from_user.username
     group = message.text
-    button_list = await group_button_list(group, message.from_user.username, user == 'admin')
-
-    keyboard = await menu_keyboard(button_list, user == 'admin', message.from_user.username == 'dariasuv')
-
+    is_admin = message.chat.id in ADMINS
+    button_list = await group_button_list(group, user_name, is_admin)
+    keyboard = await menu_keyboard(button_list, is_admin, user_name == 'dariasuv')
     text_message = "создана группа кнопок '" + group + "'"
-    if user == 'admin':
+
+    if is_admin:
+        await adm_chats_db.write(chat_id=message.chat.id, tools=['menu_back', 'menu_cancel'], values=['false', 'false'])
         text_message += "\n/admin - админские команды"
     await message.answer(text_message, reply_markup=keyboard)
+    await users_db.write(user_name, ['menu'], [group])
+    users_db.users[user_name].menu = group
 
-    await users_db.write(message.from_user.username, ['menu'], [group])
-    users_db.users[message.from_user.username].menu = group
 
-
+# создаем список кнопок из нужной группы - выбор группы в инлайн меню
 @dp.callback_query_handler(CallFilterForBattonsMenu())
 async def create_buttons_2(call: types.CallbackQuery):
-    # создаем список кнопок из нужной группы
     query = call.data.split('/')
     group = query[1]
-    is_admin = str(call.message.chat.id) in ADMINS
-    user = call.from_user.username
-    button_list = await group_button_list(group, user, is_admin)
-
-    keyboard = await menu_keyboard(button_list, is_admin, user == 'dariasuv')
-
+    is_admin = call.message.chat.id in ADMINS
+    user_name = call.from_user.username
+    button_list = await group_button_list(group, user_name, is_admin)
+    keyboard = await menu_keyboard(button_list, is_admin, user_name == 'dariasuv')
     text_message = "создана группа кнопок '" + group + "'"
+
     if is_admin:
         text_message += "\nверхние кнопки видны только админам"
     await call.message.answer(text_message, reply_markup=keyboard)
-
-    await users_db.write(user, ['menu'], [group])
-    users_db.users[user].menu = group
+    await users_db.write(user_name, ['menu'], [group])
+    users_db.users[user_name].menu = group
     await call.answer()
 
 

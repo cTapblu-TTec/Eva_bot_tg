@@ -109,7 +109,7 @@ class GroupsButtonsDatabase:
             # ['name', 'group_buttons', 'work_file', 'num_block', 'size_blok', 'shablon_file', 'active']
 
             for i in range(len(columns)):
-                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null"):
+                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None):
                     query = f"""UPDATE groups_buttons SET {columns[i]} = NULL WHERE name = $1;"""
                 else:
                     query = f"""UPDATE groups_buttons SET {columns[i]} = '{values[i]}' WHERE name = $1;"""

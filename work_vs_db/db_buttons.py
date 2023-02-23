@@ -18,6 +18,7 @@ class Button:
     hidden: int = 0
     users: str = None  # список допущенных
     specification: str = 'Описание кнопки'
+    statistical: int = 1
 
 
 class ButtonsDatabase:
@@ -38,7 +39,7 @@ class ButtonsDatabase:
                     name varchar(30) COLLATE pg_catalog."default" NOT NULL,
                     group_buttons varchar DEFAULT 'a',
                     work_file varchar DEFAULT NULL,
-                    num_block smallint NOT NULL DEFAULT 1,
+                    num_block smallint DEFAULT NULL,
                     size_blok smallint NOT NULL DEFAULT 3, CHECK (size_blok >= 0 AND size_blok <= 20),
                     name_block varchar(30) DEFAULT NULL,
                     shablon_file varchar(30) DEFAULT NULL,
@@ -47,6 +48,7 @@ class ButtonsDatabase:
                     hidden smallint NOT NULL DEFAULT 0, CHECK (hidden >= 0 AND hidden <= 1),
                     users varchar DEFAULT NULL,
                     specification varchar DEFAULT 'Описание кнопки',
+                    statistical smallint NOT NULL DEFAULT 1, CHECK (statistical >= 0 AND statistical <= 1),
                     CONSTRAINT buttons_pkey PRIMARY KEY (name)
                 );
                     """
@@ -54,11 +56,9 @@ class ButtonsDatabase:
             await self.pool.execute(query)
 
         query = """
-                ALTER TABLE public.buttons ADD COLUMN IF NOT EXISTS specification varchar DEFAULT 'Описание кнопки';
-                ALTER TABLE public.buttons ADD CHECK (size_blok >= 0 AND size_blok <= 20);
-                ALTER TABLE public.buttons ADD CHECK (active >= 0 AND active <= 1);
-                ALTER TABLE public.buttons ADD CHECK (hidden >= 0 AND hidden <= 1);
-               """
+                ALTER TABLE IF EXISTS public.buttons ALTER COLUMN num_block DROP NOT NULL;
+                ALTER TABLE IF EXISTS public.buttons ALTER COLUMN num_block SET DEFAULT NULL;
+                """
         # async with self.pool.acquire(): await self.pool.execute(query)
 
         buttons_names = await self.read('get_names_buttons', '')
@@ -125,7 +125,8 @@ class ButtonsDatabase:
                     sort=butt['sort'],
                     hidden=butt['hidden'],
                     users=butt['users'],
-                    specification=butt['specification']
+                    specification=butt['specification'],
+                    statistical=butt['statistical']
                 )
             return button
 
@@ -159,7 +160,7 @@ class ButtonsDatabase:
             # ['name', 'group_buttons', 'work_file', 'num_block', 'size_blok', 'shablon_file', 'active']
 
             for i in range(len(columns)):
-                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null"):
+                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None):
                     query = f"""UPDATE buttons SET {columns[i]} = NULL WHERE name = $1;"""
                 else:
                     query = f"""UPDATE buttons SET {columns[i]} = '{values[i]}' WHERE name = $1;"""

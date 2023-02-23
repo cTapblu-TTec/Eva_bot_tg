@@ -4,12 +4,13 @@ import asyncpg
 from pytz import timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from data.config import LINUX, DB_HOST, DB_NAME, DB_USER, DB_PASS
+from data.config import LINUX, DB_HOST, DB_NAME, DB_USER, DB_PASS, ADMINS
 from filters.users_filters import registry_user_filters
 from filters.admin_filters import registry_admin_filters
 from loader import dp
 from middlewares.menu import MenuMid
-from utils.notify_admins import on_startup_notify
+from utils.admin_menu_utils import delete_all_after_time, delete_loue_level_menu
+from utils.notify_admins import on_startup_notify, notify
 from utils.set_bot_commands import set_default_commands
 from utils.reset import reset_statistics
 from work_vs_db.db_adm_chats import adm_chats_db
@@ -28,6 +29,9 @@ async def on_startup():
     await set_default_commands()
     # Уведомляет про запуск
     await on_startup_notify()
+    # удаляем старые меню
+    for admin in ADMINS:
+        await delete_loue_level_menu(admin, 'id_msg_options')
 
 
 def create_pool() -> asyncpg.Pool:

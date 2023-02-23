@@ -4,6 +4,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from filters.users_filters import FilterForStart, CallFilterForError
 from loader import dp
+from utils.admin_menu_utils import create_menu_back, delete_last_menu
 from utils.log import log
 
 
@@ -23,8 +24,15 @@ async def start(message: types.Message):
 @dp.callback_query_handler(CallFilterForError(), state='*')
 async def errors_call(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    state = await state.get_state()
-    await call.message.answer(f"Что-то пошло не так, нажмите /start")
-    print(f'Ошибка кнопок, call.data: {call.data}, state:', state)
-    await log.write(f"Ошибка кнопок, call.data: '{call.data}' ({call.from_user.username})\n")
+    await call.message.answer(f"Отменено")
+    if call.data != "Отмена":
+        await log.write(f"Ошибка кнопок, call.data: '{call.data}' ({call.from_user.username})")
     await call.answer()
+
+
+# первый хендлер для админов
+@dp.message_handler(text='Отмена', state="*")
+async def cancel(message: types.Message, state: FSMContext):
+    await state.finish()
+    await create_menu_back(message.chat.id)
+    await delete_last_menu(message.chat.id)

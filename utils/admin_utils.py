@@ -44,14 +44,14 @@ async def add_user(new_user, all_users):
         return f"Неверный формат - {new_user}"
 
 
-async def del_user(new_user, all_users):
-    new_user = new_user.strip()
-    new_user = new_user.lstrip('@')
-    if new_user in all_users:
-        await users_db.write(new_user, 'dell_user', None)
-        return f"Пользователь удален - {new_user}"
+async def del_user(user, all_users):
+    user = user.strip()
+    user = user.lstrip('@')
+    if user in all_users:
+        await users_db.write(user, 'dell_user', None)
+        return f"Пользователь удален - {user}"
     else:
-        return f"Пользователь не найден - {new_user}"
+        return f"Пользователь не найден - {user}"
 
 
 async def download_sended_file(file_id, file_name):

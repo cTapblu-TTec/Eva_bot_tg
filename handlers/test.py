@@ -7,5 +7,5 @@ from loader import dp
 @dp.message_handler(commands=['test'])
 async def test(message: types.Message):
 
-    if str(message.from_user.id) in ADMINS:
+    if message.from_user.id in ADMINS:
         print('test')

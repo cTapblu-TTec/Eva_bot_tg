@@ -1,9 +1,10 @@
 from os import getenv
 from dotenv import load_dotenv
 
+
 load_dotenv()
 BOT_TOKEN = getenv('BOT_TOKEN')
-ADMINS = getenv('ADMINS').split(',')
+ADMINS = [int(admin.strip()) for admin in getenv('ADMINS').split(',')]
 DB_HOST = getenv('DB_HOST')
 DB_NAME = getenv('DB_NAME')
 DB_USER = getenv('DB_USER')
