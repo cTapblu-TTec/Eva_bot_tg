@@ -62,7 +62,7 @@ async def create_menu_back(chat_id, text="Создано меню 'Назад'")
     if chat_id in adm_chats_db.chats:
         type_menu = 'id_msg_system'
         chat = adm_chats_db.chats[chat_id]
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True).add('Назад', '/settings')
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True).add('Назад', 'Настройки бота')
         if chat is None: return
         if not chat.menu_back:
             await adm_chats_db.write(chat_id=chat_id, tools=['menu_back', 'menu_cancel'], values=['true', 'false'])

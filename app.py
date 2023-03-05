@@ -9,10 +9,11 @@ from filters.users_filters import registry_user_filters
 from filters.admin_filters import registry_admin_filters
 from loader import dp
 from middlewares.menu import MenuMid
-from utils.admin_menu_utils import delete_all_after_time, delete_loue_level_menu
-from utils.notify_admins import on_startup_notify, notify
+from utils.admin_menu_utils import delete_loue_level_menu
+from utils.log import log
+from utils.notify_admins import on_startup_notify
 from utils.set_bot_commands import set_default_commands
-from utils.reset import reset_statistics
+from utils.admin_utils import reset_statistics
 from work_vs_db.db_adm_chats import adm_chats_db
 from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_files_id import files_id_db
@@ -59,7 +60,6 @@ async def main():
     await stat_db.create(pool)
     await buttons_db.init(pool)
     await groups_db.create(pool)
-    await buttons_db.init(pool)
     await adm_chats_db.init(pool)
 
     # _________START BOT________
@@ -74,6 +74,7 @@ async def main():
         scheduler.start()
         await dp.start_polling()
     finally:
+        await log.send_log_now()
         dp.stop_polling()
         await dp.storage.close()
         await dp.storage.wait_closed()

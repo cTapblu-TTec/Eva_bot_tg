@@ -1,5 +1,10 @@
+import os
+
 import asyncpg
 from dataclasses import dataclass
+
+from utils.log import log
+from utils.notify_admins import notify_admins
 
 
 @dataclass()
@@ -12,7 +17,6 @@ class File:
 
 class FilesDatabase:
     pool: asyncpg.Pool
-    files_names: list
     files: dict
 
     #
@@ -44,9 +48,14 @@ class FilesDatabase:
             ff = await self.read('get_names_files', '')
 
         self.files = {i: await self.read('', i) for i in ff}
-        self.files_names = []
-        for name in ff:
-            self.files_names.append(name[:-4])  # todo хранить имена вместе с .txt
+
+        files_in_dir = os.listdir('dir_files/')
+        for file in files_in_dir:
+            if file not in ff:
+                await self.write(file, 'add_file')
+        for file in ff:
+            if file not in files_in_dir:
+                await log.write(f'Файла "{file}" нет в папке', 'admin')
 
     #
     # __________READ__________
@@ -76,22 +85,26 @@ class FilesDatabase:
 
     #
     # __________WRITE__________
-    async def write(self, file_name: str, command, values):
+    async def write(self, file_name: str, command, values=None):
 
         if command == 'add_file':
             query = """INSERT INTO filess (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
             async with self.pool.acquire(): await self.pool.execute(query, file_name)
-            self.files_names.append(file_name[:-4])
-
             file = await self.read('', file_name)
             self.files.update({file_name: file})
 
         elif command == 'dell_file':
+            if file_name in ['name.txt', 'gena.txt']:
+                await log.write(f'Файлы "name.txt", "gena.txt" нельзя удалять', 'admin')
+                return
+            from work_vs_db.db_buttons import buttons_db
+
             query = """DELETE FROM filess WHERE name = $1;"""
             async with self.pool.acquire(): await self.pool.execute(query, file_name)
-
-            self.files_names.remove(file_name[:-4])
             self.files.pop(file_name)
+            os.remove('dir_files/' + file_name)
+            await buttons_db.change_value_for_all_buttons("work_file", file_name, 'None')
+            await buttons_db.change_value_for_all_buttons("shablon_file", file_name, 'None')
 
         elif command == 'n_line':
             query = """UPDATE filess SET num_line = $2 WHERE name = $1;"""
@@ -113,6 +126,24 @@ class FilesDatabase:
 
         query = 'DROP TABLE public.filess'
         async with self.pool.acquire(): await self.pool.execute(query)
+
+    async def get_len_file(self, file):
+        length = self.files[file].length
+        if length:
+            return int(length)
+        else:
+            try:
+                with open('dir_files/' + file, "r", encoding='utf-8') as f:
+                    length = len(f.readlines())
+                await f_db.write(file, ['length'], [length])
+                return int(length)
+            except FileNotFoundError:
+                await notify_admins(f'файл {file} не найден')
+
+
+async def another():
+    content = os.listdir('dir_files/')
+    print(content)
 
 
 f_db = FilesDatabase()

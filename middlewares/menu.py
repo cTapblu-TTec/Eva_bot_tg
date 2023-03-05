@@ -21,12 +21,3 @@ class MenuMid(BaseMiddleware):
                     msg.text = users_db.users[msg.from_user.username].menu
                 else:
                     msg.text = '/del'
-
-
-"""class PrivateMid(BaseMiddleware):
-
-    async def on_pre_process_message(self, msg: Message, data: dict):
-
-        if msg.chat['type'] != "private":
-            msg.text = "/not_private"
-"""

@@ -1,23 +1,38 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+from data.config import ADMINS
 from filters.users_filters import FilterForStart, CallFilterForError
 from loader import dp
 from utils.admin_menu_utils import create_menu_back, delete_last_menu
 from utils.log import log
+from work_vs_db.db_groups_buttons import groups_db
+
+
+async def keyboard_groups(user, is_admin):
+    not_hidden_groups = []
+    hidden_groups = []
+    for group in groups_db.groups:
+        if groups_db.groups[group].hidden == 0:
+            not_hidden_groups.append(group)
+        elif (groups_db.groups[group].users and user in groups_db.groups[group].users) or is_admin:
+            hidden_groups.append(group)
+
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    for group in (not_hidden_groups + hidden_groups):
+        keyboard.add(InlineKeyboardButton(text=f'{group} - {groups_db.groups[group].specification}\n',
+                                          callback_data=('menu_groups/' + group)))
+    return keyboard
 
 
 # все сообщения от пользователей
-@dp.message_handler(FilterForStart(), state="*")
+@dp.message_handler(FilterForStart(), state="*", content_types=[types.ContentType.ANY])
 async def start(message: types.Message):
-
-    echo_buttons = ['Волонтерство', 'Дополнительные функции']
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    for butt in echo_buttons:
-        inline_button = InlineKeyboardButton(text=butt, callback_data=butt)
-        keyboard.add(inline_button)
-    await message.answer("Eva_bot:", reply_markup=keyboard)
+    username = message.from_user.username
+    is_admin = message.chat.id in ADMINS
+    keyboard = await keyboard_groups(username, is_admin)
+    await message.answer("Группы кнопок для волонтерства:", reply_markup=keyboard)
 
 
 # Эхо хендлер, куда летят не обработанные калбеки (ошибки) пользователей
@@ -26,7 +41,7 @@ async def errors_call(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await call.message.answer(f"Отменено")
     if call.data != "Отмена":
-        await log.write(f"Ошибка кнопок, call.data: '{call.data}' ({call.from_user.username})")
+        await log.write(f"Ошибка кнопок, call.data: '{call.data}' ({call.from_user.username})", 'admin')
     await call.answer()
 
 

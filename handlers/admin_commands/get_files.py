@@ -8,7 +8,7 @@ from work_vs_db.db_filess import f_db
 
 @dp.message_handler(content_types=[types.ContentType.DOCUMENT])
 async def adm_change_file(message: types.Message):
-    if message.document.file_name[:-4] in f_db.files_names:
+    if message.document.file_name in f_db.files:
 
         # -= ОТПРАВЛЯЕМ СТАРЫЙ ФАЙЛ:
         try:
@@ -26,4 +26,5 @@ async def adm_change_file(message: types.Message):
         else:
             await message.answer(reply_mess)
     else:
-        await message.answer(f"Неверное имя файла, доступные имена: {str(f_db.files_names)}")
+
+        await message.answer(f'Неверное имя файла, доступные имена: {", ".join(f_db.files)}')

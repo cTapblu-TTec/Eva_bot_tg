@@ -1,0 +1,8 @@
+01.03.23
+ALTER TABLE IF EXISTS public.users DROP CONSTRAINT users_blocks_check;
+ALTER TABLE public.users DROP COLUMN blocks;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS use_many_blocks smallint DEFAULT 1;
+ALTER TABLE public.users ADD CHECK (use_many_blocks >= 0 AND use_many_blocks <= 1);
+ALTER TABLE public.users DROP COLUMN status;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS menu_mess_id integer;
+

@@ -3,7 +3,7 @@ from aiogram import types
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.dispatcher import FSMContext
 
-from filters.admin_filters import CallFilterForGroupTools, CallFilterForGroupDell, CallFilterForGroupValue
+from filters.admin_filters import CallFilter
 from utils.admin_menu_utils import create_menu_back, create_menu_cancel, edit_message, \
     delete_all_after_time, delete_loue_level_menu, create_level_menu
 from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -84,7 +84,7 @@ async def add_group(call: types.CallbackQuery, state: FSMContext):
 
 
 #  ----====  УДАЛИТЬ ГРУППУ ====----
-@dp.callback_query_handler(CallFilterForGroupDell(), state='*')
+@dp.callback_query_handler(CallFilter(startswith='dell_group'), state='*')
 async def dell_group(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_tools'
     chat_id = call.message.chat.id
@@ -94,13 +94,9 @@ async def dell_group(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_back(chat_id)
     await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
-    # await create_level_menu(chat_id=chat_id, level=type_menu, text=text)
     if group in groups_db.groups:
         await groups_db.write(group, 'dell_group', '')
-        for button in buttons_db.buttons:
-            if group in buttons_db.buttons[button].group_buttons:
-                groups_batt = buttons_db.buttons[button].group_buttons.replace(group, '')
-                await buttons_db.write(button, ["group_buttons"], [groups_batt])
+        await buttons_db.delete_group_from_buttons(group)
         for user in users_db.users:
             if group == users_db.users[user].menu:
                 await users_db.write(user, ['menu'], [None])
@@ -119,7 +115,7 @@ async def dell_group(call: types.CallbackQuery, state: FSMContext):
 
 
 #  ----====  ВЫБОР ПАРАМЕТРА ГРУППЫ  ====----
-@dp.callback_query_handler(CallFilterForGroupTools(), state="*")
+@dp.callback_query_handler(CallFilter(startswith='g_tool'), state="*")
 async def group_tool_menu(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_tools'
     chat_id = call.message.chat.id
@@ -137,7 +133,7 @@ async def group_tool_menu(call: types.CallbackQuery, state: FSMContext):
 
 
 #  ----====  ЗАПРОС ЗНАЧЕНИЯ  ====----
-@dp.callback_query_handler(CallFilterForGroupValue())
+@dp.callback_query_handler(CallFilter(startswith='gr_value'))
 async def group_ask_value(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_values'
     chat_id = call.message.chat.id
@@ -174,10 +170,7 @@ async def group_read_value(message: types.Message, state: FSMContext):
     try:
         await groups_db.write(group, [tool], [value])
         if tool == 'name':
-            for button in buttons_db.buttons:
-                if group in buttons_db.buttons[button].group_buttons:
-                    groups_batt = buttons_db.buttons[button].group_buttons.replace(group, value)
-                    await buttons_db.write(button, ["group_buttons"], [groups_batt])
+            await buttons_db.change_value_for_all_buttons("group_buttons", group, value)
             for user in users_db.users:
                 if group == users_db.users[user].menu:
                     await users_db.write(user, ['menu'], [value])

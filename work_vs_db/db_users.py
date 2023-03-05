@@ -5,13 +5,13 @@ from dataclasses import dataclass
 @dataclass()
 class User:
     user_stat_name: str
-    # user_id: int
+    user_id: int
     n_zamen: int
     n_last_shabl: tuple
-    # status: str - хочу добавить кураторов
     menu: str
     last_button: str
-    blocks: int
+    use_many_blocks: int
+    menu_mess_id: int
 
 
 class UsersDatabase:
@@ -25,25 +25,25 @@ class UsersDatabase:
         query = """CREATE TABLE IF NOT EXISTS public.users
                     (
                         user_name character varying(30) COLLATE pg_catalog."default" NOT NULL,
-                        user_stat_name varchar DEFAULT NULL,
+                        user_stat_name varchar,
                         user_id integer,
                         n_zamen integer DEFAULT 0,
                         n_last_shabl varchar,
-                        menu varchar DEFAULT NULL,
-                        last_button varchar DEFAULT NULL,
-                        status VARCHAR COLLATE pg_catalog."default" DEFAULT 'user',
-                        blocks smallint NOT NULL DEFAULT 1, CHECK (blocks >= 1 AND blocks <= 10),
+                        menu varchar,
+                        last_button varchar,
+                        menu_mess_id integer,
+                        use_many_blocks smallint DEFAULT 1, CHECK (use_many_blocks >= 0 AND use_many_blocks <= 1),
                         CONSTRAINT "Users_pkey" PRIMARY KEY (user_name)
                     ); """
         async with self.pool.acquire():
             await self.pool.execute(query)
+        # ALTER TABLE public.users ADD COLUMN IF NOT EXISTS blocks smallint NOT NULL DEFAULT 1;
+        # ALTER TABLE IF EXISTS public.users DROP CONSTRAINT users_blocks_check;
+        # ALTER TABLE public.users DROP COLUMN blocks;
+        # ALTER TABLE public.users ADD CHECK (blocks >= 0 AND blocks <= 1);
 
-        query = """
-                ALTER TABLE public.users ADD COLUMN IF NOT EXISTS blocks smallint NOT NULL DEFAULT 1;
-                ALTER TABLE public.users ADD CHECK (blocks >= 1 AND blocks <= 10);
-                ALTER TABLE public.users ADD COLUMN IF NOT EXISTS user_stat_name varchar DEFAULT NULL;
-               """
-        #  async with self.pool.acquire(): await self.pool.execute(query)
+        # query = """"""
+        # async with self.pool.acquire(): await self.pool.execute(query)
 
         names = await self.read('get_names_users', '')
         if not names:
@@ -79,12 +79,14 @@ class UsersDatabase:
             if u:
                 u = u[0]
                 user = User(
+                    user_id=u['user_id'],
                     user_stat_name=u['user_stat_name'],
                     n_zamen=u['n_zamen'],
                     n_last_shabl=u['n_last_shabl'],
                     menu=u['menu'],
                     last_button=u['last_button'],
-                    blocks=u['blocks']
+                    use_many_blocks=u['use_many_blocks'],
+                    menu_mess_id=u['menu_mess_id']
                 )
             return user
 
@@ -110,7 +112,7 @@ class UsersDatabase:
             columns = command  # ['user_id', 'n_zamen', 'n_last_otm', 'n_last_shabl']
 
             for i in range(len(columns)):
-                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None):
+                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None, ''):
                     query = f"""UPDATE users SET {columns[i]} = NULL WHERE user_name = $1;"""
 
                 else:
@@ -119,6 +121,36 @@ class UsersDatabase:
                     query = f"""UPDATE users SET {columns[i]} = {values[i]} WHERE user_name = $1;"""
                 async with self.pool.acquire():
                     await self.pool.execute(query, user_name)
+
+    async def del_user(self, user):
+        all_users = self.users_names
+        user = user.strip()
+        user = user.lstrip('@')
+        if user in all_users:
+            await self.write(user, 'dell_user', None)
+            return f"Пользователь удален - {user}"
+        else:
+            return f"Пользователь не найден - {user}"
+
+    async def add_user(self, new_user):
+        all_users = self.users_names
+        new_user = new_user.strip()
+        new_user = new_user.lstrip('@')
+        iskl = ' !"$%&()*+,/:;<>=?@^#{}|~'
+        begin = True
+        for i in iskl:
+            if i in new_user:
+                begin = False
+        if new_user == '':
+            begin = False
+        if new_user.isascii() and begin:
+            if new_user in all_users:
+                return f"Пользователь {new_user} уже был в списке"
+            await self.write(new_user, 'add_user', None)
+            return f"Добавлен пользователь - {new_user}"
+
+        else:
+            return f"Неверный формат - {new_user}"
 
 
 users_db = UsersDatabase()

@@ -35,11 +35,6 @@ class GroupsButtonsDatabase:
                     """
         async with self.pool.acquire(): await self.pool.execute(query)
 
-        query = """
-                ALTER TABLE public.groups_buttons ADD COLUMN IF NOT EXISTS users varchar DEFAULT NULL;
-               """
-        async with self.pool.acquire(): await self.pool.execute(query)
-
         for i in buttons_db.buttons_groups:
             query = """INSERT INTO groups_buttons (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
             async with self.pool.acquire(): await self.pool.execute(query, i)
@@ -109,7 +104,7 @@ class GroupsButtonsDatabase:
             # ['name', 'group_buttons', 'work_file', 'num_block', 'size_blok', 'shablon_file', 'active']
 
             for i in range(len(columns)):
-                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None):
+                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None, ''):
                     query = f"""UPDATE groups_buttons SET {columns[i]} = NULL WHERE name = $1;"""
                 else:
                     query = f"""UPDATE groups_buttons SET {columns[i]} = '{values[i]}' WHERE name = $1;"""

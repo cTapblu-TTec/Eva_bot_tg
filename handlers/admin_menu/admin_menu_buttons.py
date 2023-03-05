@@ -5,10 +5,8 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-from filters.admin_filters import CallFilterForButtonTools, CallFilterForButtonDell, CallFilterForButtonValue, \
-    CallFilterForButtonValueFile, CallFilterForButtonValueSetFile
+from filters.admin_filters import CallFilterForButtonValueFile, CallFilter
 from loader import dp
-from utils.admin_utils import get_button_clicks
 from utils.log import log
 from work_vs_db.db_adm_chats import adm_chats_db
 from work_vs_db.db_buttons import buttons_db
@@ -43,24 +41,12 @@ class FCM(StatesGroup):
     waite_set_file = State()
 
 
-async def names_numbers(names, text=''):
-    names_num = {}
-    num = 1
-    for name in names:
-        names_num[text + str(num)] = name
-        num += 1
-    return names_num
-
-
 async def buttons_keyboard():
     keyboard = InlineKeyboardMarkup(row_width=1)
-    buttons = await names_numbers(buttons_db.buttons_names, 'b')
-    Data.buttons = buttons
-    for num in buttons:
-        cliks = await get_button_clicks(buttons[num])
-        button_cliks = ''
-        if cliks: button_cliks = f' - {cliks}'
-        keyboard.add(InlineKeyboardButton(text=f'{buttons[num]}{button_cliks}', callback_data='b_tool/' + num))
+    buttons = buttons_db.buttons
+    for butt in buttons:
+        callback_data = 'b_tool/' + buttons_db.buttons[butt].num_button
+        keyboard.add(InlineKeyboardButton(text=butt, callback_data=callback_data))
     keyboard.add(InlineKeyboardButton(text='Добавить кнопку', callback_data='add_button'))
     return keyboard
 
@@ -73,7 +59,7 @@ async def button_tools_keyboard(button, num_butt):
         inline_button = InlineKeyboardButton(text=f'{tool_text} --==-- {value}',
                                              callback_data=f'bt_value/{num_butt}/{tool}')
         keyboard.add(inline_button)
-    keyboard.add(InlineKeyboardButton(text='Удалить кнопку', callback_data='dell_button|' + num_butt))
+    keyboard.add(InlineKeyboardButton(text='Удалить кнопку', callback_data='dell_button/' + num_butt))
     return keyboard
 
 
@@ -82,7 +68,7 @@ async def button_tools_keyboard(button, num_butt):
 @dp.callback_query_handler(text="Настройка кнопок", state='*')
 async def buttons_menu(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_options'
-    text = "Кнопка - осталось нажатий:"
+    text = "Настройка кнопок"
     chat_id = call.message.chat.id
     keyboard = await buttons_keyboard()
 
@@ -105,29 +91,31 @@ async def add_button(call: types.CallbackQuery, state: FSMContext):
     await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
 
     if 'Новая кнопка' not in buttons_db.buttons:
-        await buttons_db.write('Новая кнопка', 'add_button', '')
+        await buttons_db.write('Новая кнопка', 'add_button')
         await edit_message(chat_id=chat_id,
                            type_menu='id_msg_options',
                            keyboard=await buttons_keyboard(),
                            text="Кнопка 'Новая кнопка' добавлена")
-        text = "Кнопка 'Новая кнопка' добавлена, можете ее переименовать /settings"
+        text = "Кнопка 'Новая кнопка' добавлена, можете ее переименовать"
         await create_level_menu(chat_id=chat_id, level=type_menu, text=text)
         await log.write(f"admin_menu: Кнопка добавлена ({call.from_user.username})")
+        await buttons_db.create() # todo in BD
+        await groups_db.create(None)
     else:
-        text = "Кнопка 'Новая кнопка' уже есть, можете ее переименовать /settings"
+        text = "Кнопка 'Новая кнопка' уже есть, можете ее переименовать"
         await create_level_menu(chat_id=chat_id, level=type_menu, text=text)
     await call.answer()
     await delete_all_after_time(chat_id)
 
 
 #  ----====  ВЫБОР ПАРАМЕТРА КНОПКИ  ====----
-@dp.callback_query_handler(CallFilterForButtonTools(), state="*")
+@dp.callback_query_handler(CallFilter(startswith='b_tool'), state="*")
 async def button_tools(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_tools'
     chat_id = call.message.chat.id
     query = call.data.split('/')
     num_butt = query[1]
-    button = Data.buttons[num_butt]
+    button = buttons_db.button_numbers[num_butt]
     keyboard = await button_tools_keyboard(button, num_butt=num_butt)
     text = f"Настройка кнопки '{button}'"
 
@@ -140,23 +128,28 @@ async def button_tools(call: types.CallbackQuery, state: FSMContext):
 
 
 #  ----====  УДАЛИТЬ КНОПКУ ====----
-@dp.callback_query_handler(CallFilterForButtonDell(), state='*')
+@dp.callback_query_handler(CallFilter(startswith='dell_button'), state='*')
 async def dell_button(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_tools'
     chat_id = call.message.chat.id
+    query = call.data.split('/')
+    num_butt = query[1]
+    button = buttons_db.button_numbers[num_butt]
 
     await state.finish()
     await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
 
-    button = call.data[12:]
     if button in buttons_db.buttons:
-        await buttons_db.write(button, 'dell_button', '')
+        await buttons_db.write(button, 'dell_button')
+        buttons_db.button_numbers.pop(num_butt)  # todo в базу
         await edit_message(chat_id=chat_id,
                            type_menu='id_msg_options',
                            keyboard=(await buttons_keyboard()),
                            text=f"Кнопка {button} удалена")
         await create_level_menu(chat_id=chat_id, level=type_menu, text=f"Кнопка {button} удалена")
         await log.write(f"admin_menu: Кнопка {button} удалена ({call.from_user.username})")
+        await buttons_db.create()
+        await groups_db.create(None)
     else:
         await create_level_menu(chat_id=chat_id, level=type_menu, text=f"Кнопка {button} не найдена")
     await call.answer()
@@ -177,7 +170,7 @@ async def button_ask_file(call: types.CallbackQuery, state: FSMContext):
     chat_id = call.message.chat.id
     query = call.data.split('/')
     num_butt = query[1]
-    button = Data.buttons[num_butt]
+    button = buttons_db.button_numbers[num_butt]
     tool = query[2]
     tool_name = Data.names_tools[tool]
     keyboard = file_keyb()
@@ -192,13 +185,13 @@ async def button_ask_file(call: types.CallbackQuery, state: FSMContext):
     await delete_all_after_time(call.message.chat.id)
 
 
-@dp.callback_query_handler(CallFilterForButtonValueSetFile(), state=FCM.waite_set_file)
+@dp.callback_query_handler(CallFilter(startswith='b_set_f'), state=FCM.waite_set_file)
 async def button_ask_file_2(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_values'
     chat_id = call.message.chat.id
     query = call.data.split('/')
     num_butt = query[1]
-    button = Data.buttons[num_butt]
+    button = buttons_db.button_numbers[num_butt]
     tool = query[2]
     file = query[3]
     tool_text = Data.names_tools[tool]
@@ -221,13 +214,13 @@ async def button_ask_file_2(call: types.CallbackQuery, state: FSMContext):
 
 
 #  ----====  ЗАПРОС ЗНАЧЕНИЯ  ====----
-@dp.callback_query_handler(CallFilterForButtonValue(), state='*')
+@dp.callback_query_handler(CallFilter(startswith='bt_value'), state='*')
 async def button_ask_value(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_values'
     chat_id = call.message.chat.id
     query = call.data.split('/')
     num_butt = query[1]
-    button = Data.buttons[num_butt]
+    button = buttons_db.button_numbers[num_butt]
     tool = query[2]
     tool_text = Data.names_tools[tool]
     text = f"Введите значение параметра '{tool_text}' для кнопки '{button}'"
@@ -248,7 +241,7 @@ async def button_read_value(message: types.Message, state: FSMContext):
     type_menu = 'id_msg_values'
     chat_id = message.chat.id
     num_butt = adm_chats_db.chats[chat_id].option
-    button = Data.buttons[num_butt]
+    button = buttons_db.button_numbers[num_butt]
     tool = adm_chats_db.chats[chat_id].tool
     value = message.text
     tool_text = Data.names_tools[tool]
@@ -259,14 +252,14 @@ async def button_read_value(message: types.Message, state: FSMContext):
     await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
     try:
         await buttons_db.write(button, [tool], [value])
+        # todo это надо делать в базе:
         if tool in ["name", "group_buttons", "active", "sort"]:
+            if tool == "name":
+                buttons_db.button_numbers[num_butt] = value
             await buttons_db.create()
             await groups_db.create(None)
-            # todo использовать системное сообщение
+            # использовать системное сообщение
             # await message.answer("Данные обновлены из базы данных")
-
-        await create_level_menu(chat_id=chat_id, level=type_menu, text=text)
-
         if tool == "name":
             button_name = value
             await edit_message(chat_id=chat_id,
@@ -275,6 +268,8 @@ async def button_read_value(message: types.Message, state: FSMContext):
                                text=f"Кнопка {button} переименована")
         else:
             button_name = button
+
+        await create_level_menu(chat_id=chat_id, level=type_menu, text=text)
 
         #  Обновление сообщения с tools
         await edit_message(chat_id=chat_id,
@@ -285,7 +280,7 @@ async def button_read_value(message: types.Message, state: FSMContext):
         await log.write(f"admin_menu: Значение '{value}' параметра '{tool_text} ({tool})' для кнопки '{button}'"
                         f" установлено, ({message.from_user.username})")
 
-    except Exception:
+    except SystemExit:
         answer = f"Значение '{value}' параметра '{tool_text}' для кнопки '{button}' не установлено!"
         await create_level_menu(chat_id=chat_id, level=type_menu, text=answer)
         await log.write(f"admin_menu: Значение '{value}' параметра '{tool_text} ({tool})' для кнопки '{button}' "

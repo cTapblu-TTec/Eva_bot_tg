@@ -1,6 +1,6 @@
 import random
 
-from utils.notify_admins import notify
+from utils.notify_admins import notify_admins
 
 
 Files: dict = {}  # имя файла: файл
@@ -18,7 +18,7 @@ async def open_file(file: str):
                 break
         return Files[file]
     except Exception:
-        await notify(f'Файл {file} не читается')
+        await notify_admins(f'Файл {file} не читается')
         return None
 
 
@@ -83,7 +83,7 @@ async def get_link_list(n_f_line: int, k: int, file: str, button: str):
         if n_f_line >= len_f:
             # todo сюда добавить проверку что в основном файле есть еще отметки и загрузку из него нового кусочка 5000
             text += '\nсписок исчерпан'
-            await notify(f"{file} исчерпан ({button})")
+            await notify_admins(f"{file} исчерпан ({button})")
             break
         if text != '' and text[-1] != '\n': text = text + '\n'
         text += str(linesf[n_f_line])

@@ -94,7 +94,7 @@ class AdmChatsDatabase:
         # print(query, chat_id)
 
         for i in range(len(tools)):
-            if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None):
+            if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None, ''):
                 query = f"""UPDATE adm_chats SET {tools[i]} = NULL WHERE chat_id = '{chat_id}';"""
             else:
                 query = f"""UPDATE adm_chats SET {tools[i]} = '{values[i]}' WHERE chat_id = '{chat_id}';"""

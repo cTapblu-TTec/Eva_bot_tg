@@ -6,7 +6,7 @@ from utils.admin_menu_utils import delete_all_after_time, create_menu_back, dele
 from loader import dp
 
 
-@dp.message_handler(commands='settings', state='*')
+@dp.message_handler(text='Настройки бота', state='*')
 async def start_menu(message: types.Message, state: FSMContext):
     def start_menu_keyboard():
         settings_buttons = ['Настройка кнопок', 'Настройка файлов', 'Настройка групп', 'Настройка пользователей']

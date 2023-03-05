@@ -1,22 +1,17 @@
 import asyncpg
-from datetime import datetime
-from pytz import timezone
 
+from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_users import users_db
 
 
 class StatDatabase:
     columns: list = []  # список столбцов в статистике
     pool: asyncpg.Pool
-    users_st: list  # users_st - список имен юзеров в статистике
+    users_st: list  # - список имен юзеров в статистике
 
-    # vk_ludi.txt', 'vk_lotereya.txt', 'vk_gruppa.txt', 'vk_storis.txt
     # ______CREATE______
     async def create(self, pool: asyncpg.Pool):
         if pool: self.pool = pool
-
-        # await self.dell()
-
         query = """CREATE TABLE IF NOT EXISTS public.statistic
                 (
                     user_name character varying(30) COLLATE pg_catalog."default" NOT NULL,
@@ -25,107 +20,88 @@ class StatDatabase:
         async with self.pool.acquire(): await self.pool.execute(query)
 
         query = """SELECT user_name FROM statistic;"""
-        async with self.pool.acquire(): u = await self.pool.fetch(query)
+        async with self.pool.acquire():
+            u = await self.pool.fetch(query)
         self.users_st = []
         for i in u:
             self.users_st.append(i[0])
 
     # ______GET personal______
     async def get_personal_stat(self, user_name):
-        query = 'SELECT * FROM statistic WHERE user_name = $1;'
-        async with self.pool.acquire():
-            stat = await self.pool.fetch(query, user_name)
-            result = ''
-            if stat:
-                for i in stat[0].keys():
-                    if isinstance(stat[0][i],int) and stat[0][i] > 0:
-                        result += f'\n{i} - {stat[0][i]}'
-        return result
-
-    # ______GET HTML______
-    async def get_html(self):
-
-        query = 'SELECT * FROM statistic;'
-        async with self.pool.acquire():
-            stat = await self.pool.fetch(query)
-        dtime = datetime.now(tz=timezone('Europe/Moscow')).strftime('%d.%m.%Y %H:%M')
-        head = """
-        <!DOCTYPE HTML>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Статистика</title>
-        </head>
-        <style>
-            table
-                {border-collapse: collapse;
-                width: 100%;
-                background-color: White;}
-            th
-                {font-weight:normal;
-                 background-color:  MediumVioletRed;
-                 color: White;}
-            th, td
-                {border: 1px solid Teal; 
-                padding: 2px;
-                text-align: center; 
-                width: 100px;}
-            body
-                {background-color: Teal;
-                font: 100% monospace;
-                font-style: normal;}
-            caption
-                {color: White;
-                text-align: left;}
-        </style>
-        <body>
-            <table>
-            <colgroup>
-                <col span="1" style="background:#FFFACD">
-            </colgroup>
-            <caption>""" + dtime + """</caption>"""
-
-        columns = '\n\t\t\t<tr>'
-        if stat:
-            for column in stat[0].keys():
-                columns += '<th>' + column + '</th>'
-            columns += '</tr>'
-
-        statistic = {}
-        for user in stat:
-            user_name = user['user_name']
+        def get_list_users_in_statistic():
+            users = [user_name]
             if users_db.users[user_name].user_stat_name:
                 user_stat_name = users_db.users[user_name].user_stat_name
             else:
                 user_stat_name = user_name
-            user_stat = list(user)[1:]
-            if not statistic.get(user_stat_name):
-                statistic[user_stat_name] = user_stat
-            else:
-                i = 0
-                for clics in statistic[user_stat_name]:
-                    user_stat[i] += clics
-                    i += 1
-                statistic[user_stat_name] = user_stat
-        sort_stat = {}
-        for user in statistic:
-            sort_stat[user] = sum(statistic[user])
-        sort_stat = dict(sorted(sort_stat.items(),key=lambda item: item[1],reverse=True))
+            for us in users_db.users:
+                if users_db.users[us].user_stat_name == user_stat_name and us not in users:
+                    users.append(us)
+            return users
+
+        async def get_user_stat():
+            query = 'SELECT * FROM statistic WHERE user_name = $1;'
+            async with self.pool.acquire():
+                stat = await self.pool.fetch(query, user)
+            in_statistic = ''
+            not_in_statistic = ''
+            result = ''
+            if stat:
+                stat = stat[0]
+                stat_l = {}
+                for button in stat.keys():
+                    if isinstance(stat[button], int):
+                        stat_l[button] = stat[button]
+                stat_l = dict(sorted(stat_l.items(), key=lambda item: item[1], reverse=True))
+                for button in stat_l:
+                    if stat_l[button] > 0:
+                        text = f'\n• {button} - {stat_l[button]}'
+                        butt = buttons_db.buttons[button]
+                        if butt.hidden == 0 and butt.statistical == 1:
+                            in_statistic += text
+                        else:
+                            not_in_statistic += text
+                if in_statistic:
+                    result += f'Идет в статистику:{in_statistic}\n'
+                if not_in_statistic:
+                    result += f'Не идет в статистику:{not_in_statistic}\n'
+            return result
+
+        user_stats = ''
+        for user in get_list_users_in_statistic():
+            user_stats += f'\n    {user}\n{await get_user_stat()}'
+        return user_stats
+
+    # ______GET HTML______
+    async def get_html(self, get_all=False, file_stat='statistic.html'):
+        query = 'SELECT * FROM statistic;'
+        async with self.pool.acquire():
+            stat = await self.pool.fetch(query)
+
+        head = await get_head()
+        columns = '\n\t\t\t<tr>'
         table = ''
-        for user in sort_stat:
-            table += '\n\t\t\t<tr>'
-            table += '<td>' + user + '</td>'
-            for clics in statistic[user]:
-                table += '<td>' + str(clics) + '</td>'
-            table += '</tr>'
-        close = """
-            </table>
-        </body>
-        </html>"""
+        if stat:
+            statistic, buttons = await get_sort_stat(stat, get_all)
+            columns += '<th>Имя</th>'
+            for column in buttons:
+                columns += f'<th> {column} ({buttons[column]}) </th>'
+            columns += '</tr>'
+
+            for user in statistic:
+                table += '\n\t\t\t<tr>'
+                table += '<td>' + user + '</td>'
+                for butt in buttons:
+                    if statistic[user].get(butt):
+                        table += '<td>' + str(statistic[user][butt]) + '</td>'
+                    else:
+                        table += '<td>0</td>'
+                table += '</tr>'
+        close = """</table> </body> </html>"""
 
         text = head + columns + table + close
 
-        with open('statistic.html', 'w', encoding='utf-8') as file:
+        with open(file_stat, 'w', encoding='utf-8') as file:
             file.write(text)
 
     # ______WRITE______
@@ -167,3 +143,91 @@ class StatDatabase:
 
 
 stat_db = StatDatabase()
+
+
+async def get_sort_stat(stat, get_all):
+    statistic = {}
+    buttons = {}
+    for user in stat:
+        user_name = user['user_name']
+        # имя пользователя
+        if users_db.users[user_name].user_stat_name:
+            user_stat_name = users_db.users[user_name].user_stat_name
+        else:
+            user_stat_name = user_name
+
+        user_stat = {}
+        for button in user.keys():
+            if isinstance(user[button], int) and user[button] > 0:
+                butt = buttons_db.buttons[button]
+                if (butt.hidden == 0 and butt.statistical == 1) or get_all:
+                    user_stat[button] = user[button]
+                    if button not in buttons:
+                        buttons[button] = user[button]
+                    else:
+                        buttons[button] += user[button]
+                    # складывать значения для кнопки
+
+        if not statistic.get(user_stat_name):
+            statistic[user_stat_name] = user_stat
+        else:  # складываем статистики пользователей с одинаковыми именами
+            i = 0
+            for button in statistic[user_stat_name]:
+                if not user_stat.get(button):
+                    user_stat[button] = 0
+                user_stat[button] += statistic[user_stat_name][button]
+                i += 1
+            statistic[user_stat_name] = user_stat
+    sort = {}
+    for user in statistic:
+        user_clicks = list(statistic[user].values())
+        sort[user] = sum(user_clicks)
+    sort = dict(sorted(sort.items(), key=lambda item: item[1], reverse=True))
+    buttons = dict(sorted(buttons.items(), key=lambda item: item[1], reverse=True))
+    sort_stat = {}
+    for user in sort:
+        if sort[user] > 0:
+            sort_stat[user] = statistic[user]
+    return sort_stat, buttons
+
+
+async def get_head():
+    from datetime import datetime
+    from pytz import timezone
+
+    dtime = datetime.now(tz=timezone('Europe/Moscow')).strftime('%d.%m.%Y %H:%M')
+    return """
+    <!DOCTYPE HTML>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Статистика</title>
+    </head>
+    <style>
+        table
+            {border-collapse: collapse;
+            width: 100%;
+            background-color: White;}
+        th
+            {font-weight:normal;
+             background-color:  MediumVioletRed;
+             color: White;}
+        th, td
+            {border: 1px solid Teal; 
+            padding: 2px;
+            text-align: center; 
+            width: 100px;}
+        body
+            {background-color: Teal;
+            font: 100% monospace;
+            font-style: normal;}
+        caption
+            {color: White;
+            text-align: left;}
+    </style>
+    <body>
+        <table>
+        <colgroup>
+            <col span="1" style="background:#FFFACD">
+        </colgroup>
+        <caption>""" + dtime + """</caption>"""

@@ -1,20 +1,20 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from data.config import ADMINS
 from utils.admin_menu_utils import create_menu_back, delete_last_menu
 from loader import dp
+from handlers.separation import keyboard_groups
 
 
 # Эхо хендлер, куда летят текстовые сообщения без указанного состояния
 @dp.message_handler(state=None)
 async def echo(message: types.Message):
-    echo_buttons = ['Волонтерство', 'Дополнительные функции']
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    for butt in echo_buttons:
-        inline_button = InlineKeyboardButton(text=butt, callback_data=butt)
-        keyboard.add(inline_button)
-    await message.answer("Eva_bot:", reply_markup=keyboard)
+
+    username = message.from_user.username
+    is_admin = message.chat.id in ADMINS
+    keyboard = await keyboard_groups(username, is_admin)
+    await message.answer("Группы кнопок для волонтерства:", reply_markup=keyboard)
 
 
 # Эхо хендлер, куда летят не обработанные калбеки (ошибки)
@@ -24,7 +24,7 @@ async def errors_call(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_back(call.message.chat.id)
     await delete_last_menu(call.message.chat.id)
-    # await call.message.answer("Что-то пошло не так, нажмите /settings")
+    # await call.message.answer("Что-то пошло не так")
     # print(f'Ошибка кнопок, call.data: {call.data}, state:', st)
     # await log.write(f"Ошибка кнопок, call.data: '{call.data}', state:', {st} ({call.from_user.username})")
     await call.answer()
@@ -36,6 +36,6 @@ async def errors_mess(message: types.Message, state: FSMContext):
     await state.finish()
     await create_menu_back(message.chat.id)
     await delete_last_menu(message.chat.id)
-    # await message.answer("Что-то пошло не так, нажмите /settings")
+    # await message.answer("Что-то пошло не так")
     # print(f'admin: Ошибка сообщений, message: {message.text}, state:', state)
     # await log.write(f"admin: Ошибка кнопок, message: '{message.text}' ({message.from_user.username})")

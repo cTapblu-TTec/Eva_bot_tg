@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 
 @dataclass()
-class Writed_BD:
+class WritedBD:
     writed: bool = True
     write_number: bool = False
     write_template: bool = False
@@ -14,20 +14,20 @@ class Writed_BD:
 async def write_bd(number, template, links):
     #  что нужно записать в базу
     if number:
-        Writed_BD.write_number = True
+        WritedBD.write_number = True
     if template:
-        Writed_BD.write_template = True
+        WritedBD.write_template = True
     if links:
-        Writed_BD.write_links = True
+        WritedBD.write_links = True
     await wait_10sec()
 
 
 async def wait_10sec():
-    if Writed_BD.writed:
-        Writed_BD.writed = False
+    if WritedBD.writed:
+        WritedBD.writed = False
         await sleep(10)  # ждем накопления записей в БД 10 сек
-        if not Writed_BD.writed:
-            Writed_BD.writed = True
+        if not WritedBD.writed:
+            WritedBD.writed = True
             # await write()
     else:
         return
@@ -36,7 +36,7 @@ async def wait_10sec():
 # TODO тут неплохо было бы доделать периодическую запись в базу а не как сейчас
 """
 async def write():
-    if Writed_BD.write_number:  # если с номером
+    if WritedBD.write_number:  # если с номером
         await buttons_db.write(button_name, 'num_block', button.num_block)
 
     # -----===== исправить на работу без Ф-строк========-------
