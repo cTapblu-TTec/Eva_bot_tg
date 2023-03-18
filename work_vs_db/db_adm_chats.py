@@ -1,8 +1,6 @@
 import asyncpg
 from dataclasses import dataclass
 
-from data.config import ADMINS
-
 
 @dataclass()
 class AdmChat:
@@ -23,7 +21,7 @@ class AdmChat:
 
 class AdmChatsDatabase:
     pool: asyncpg.Pool
-    chats: dict
+    chats: dict = {}
 
     async def init(self, pool):
         self.pool = pool
@@ -53,12 +51,21 @@ class AdmChatsDatabase:
         async with self.pool.acquire():
             await self.pool.execute(query)
 
-        self.chats = {chat_id: await self.read(chat_id) for chat_id in ADMINS}
+        for chat_id in await self.get_chats_id():
+            await self.read(chat_id)
 
     #
     # __________READ__________
-    async def read(self, chat_id: int):
+    async def get_chats_id(self):
+        query = """SELECT chat_id FROM adm_chats;"""
+        async with self.pool.acquire():
+            chats_id = await self.pool.fetch(query)
+        chats = []
+        for i in chats_id:
+            chats.append(i['chat_id'])
+        return chats
 
+    async def read(self, chat_id: int):
         query = """SELECT * FROM adm_chats WHERE chat_id = $1;"""
         async with self.pool.acquire():
             answer = await self.pool.fetch(query, chat_id)
@@ -80,13 +87,11 @@ class AdmChatsDatabase:
                 value=answer['value'],
                 state=answer['state']
             )
-        return chat
+        self.chats.update({chat_id: chat})
 
     #
     # __________WRITE__________
     async def write(self, chat_id, tools, values):
-
-        chat_id = chat_id
 
         query = """INSERT INTO adm_chats (chat_id) VALUES ($1) ON CONFLICT (chat_id) DO NOTHING;"""
         async with self.pool.acquire():
@@ -102,8 +107,7 @@ class AdmChatsDatabase:
                 await self.pool.execute(query)
             # print(query, chat_id)
 
-        chat = await self.read(chat_id)
-        self.chats.update({chat_id: chat})
+        await self.read(chat_id)
 
     #
     # __________DELETE TABLE__________
@@ -111,6 +115,12 @@ class AdmChatsDatabase:
 
         query = 'DROP TABLE public.adm_chats;'
         async with self.pool.acquire(): await self.pool.execute(query)
+
+    async def get_all_from_bd(self):
+        query = """SELECT * FROM adm_chats"""
+        async with self.pool.acquire():
+            res = await self.pool.fetch(query)
+        return [dict(row) for row in res]
 
 
 adm_chats_db = AdmChatsDatabase()

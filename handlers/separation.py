@@ -39,7 +39,7 @@ async def start(message: types.Message):
 @dp.callback_query_handler(CallFilterForError(), state='*')
 async def errors_call(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    await call.message.answer(f"Отменено")
+    await call.message.answer("Отменено")
     if call.data != "Отмена":
         await log.write(f"Ошибка кнопок, call.data: '{call.data}' ({call.from_user.username})", 'admin')
     await call.answer()

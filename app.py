@@ -1,10 +1,12 @@
 import asyncio
 import logging
+
 import asyncpg
 from pytz import timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from data.config import LINUX, DB_HOST, DB_NAME, DB_USER, DB_PASS, ADMINS
+from filters.moder_filter import registry_moder_filters
 from filters.users_filters import registry_user_filters
 from filters.admin_filters import registry_admin_filters
 from loader import dp
@@ -14,15 +16,20 @@ from utils.log import log
 from utils.notify_admins import on_startup_notify
 from utils.set_bot_commands import set_default_commands
 from utils.admin_utils import reset_statistics
-from work_vs_db.db_adm_chats import adm_chats_db
-from work_vs_db.db_buttons import buttons_db
-from work_vs_db.db_files_id import files_id_db
-from work_vs_db.db_filess import f_db
-from work_vs_db.db_groups_buttons import groups_db
-from work_vs_db.db_stat import stat_db
-from work_vs_db.db_users import users_db
+from work_vs_db.db_moderators import moderators_db
+from work_vs_db.manager_bd import init_bd
 
 logger = logging.getLogger(__name__)
+
+
+def logging_set_config():
+    formatt = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+    logging.basicConfig(level=logging.WARNING, format=formatt)
+
+    loggerr = logging.getLogger()
+    handler2 = logging.FileHandler('log.log')
+    handler2.setFormatter(logging.Formatter(formatt))
+    loggerr.addHandler(handler2)
 
 
 async def on_startup():
@@ -33,6 +40,8 @@ async def on_startup():
     # удаляем старые меню
     for admin in ADMINS:
         await delete_loue_level_menu(admin, 'id_msg_options')
+    for moder in moderators_db.moderators:
+        await delete_loue_level_menu(moder, 'id_msg_options')
 
 
 def create_pool() -> asyncpg.Pool:
@@ -43,35 +52,27 @@ def create_pool() -> asyncpg.Pool:
 
 
 async def main():
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    )
-    logger.info("Starting bot")
+    logging_set_config()
+
     # _________SCHEDULER________
     scheduler = AsyncIOScheduler()
     scheduler.timezone = timezone('Europe/Moscow')
     scheduler.add_job(reset_statistics, 'cron', hour=2, minute=30, misfire_grace_time=3600)
+
     # _________POOL________
-    pool = await create_pool()
-    await users_db.create(pool)
-    await files_id_db.create(pool)
-    await f_db.create(pool)
-    await stat_db.create(pool)
-    await buttons_db.init(pool)
-    await groups_db.create(pool)
-    await adm_chats_db.init(pool)
+    await init_bd(await create_pool())
 
     # _________START BOT________
     dp.middleware.setup(MenuMid())
     registry_admin_filters(dp)
     registry_user_filters(dp)
-
+    registry_moder_filters(dp)
     import handlers
     await on_startup()
     await dp.skip_updates()
     try:
         scheduler.start()
+        logger.warning("Starting bot")
         await dp.start_polling()
     finally:
         await log.send_log_now()
@@ -88,4 +89,4 @@ if __name__ == '__main__':
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logger.info("Bot stopped!")
+        logger.warning("Bot stopped!")

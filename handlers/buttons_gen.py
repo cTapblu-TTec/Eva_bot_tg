@@ -6,6 +6,7 @@ from loader import dp
 from utils.admin_menu_utils import delete_loue_level_menu
 from work_vs_db.db_adm_chats import adm_chats_db
 from work_vs_db.db_buttons import buttons_db
+from work_vs_db.db_moderators import moderators_db
 from work_vs_db.db_users import users_db
 
 
@@ -31,18 +32,31 @@ async def group_button_list(group, username, admin):
                 elif buttons_db.buttons[button].users is not None and \
                         username in buttons_db.buttons[button].users:
                     button_list.append(button)
+    if not button_list: button_list = ['Выбор группы кнопок']
     return button_list
 
 
-async def menu_keyboard(button_list, admin, dariasuv):
+async def menu_keyboard(button_list, admin, user_id):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     if admin:
-        keyboard.add(*['Мои настройки', 'Настройки бота', 'Cостояние бота'])
+        keyboard.add(*['Мои настройки', 'Админка', 'Мониторинг'])
 
-    elif dariasuv and not admin:
-        keyboard.add(*['Мои настройки', '/st'])
+    elif user_id in moderators_db.moderators:
+        access_settings = await moderators_db.check_access_moderator(
+            user_id, ['access_to_buttons_tools', 'access_to_files_tools', 'access_to_groups_tools',
+                      'access_to_users_tools'])
+        access_state = await moderators_db.check_access_moderator(user_id, 'access_to_state_tools', 'any')
+        moder_menu = ['Мои настройки']
+        if access_settings:
+            moder_menu.append('Админка')
+        if access_state:
+            moder_menu.append('Мониторинг')
+        if len(moder_menu) < 3:
+            moder_menu.append('Выбор клавиатуры')
+        keyboard.add(*moder_menu)
+
     else:
-        keyboard.add(*['Мои настройки'])
+        keyboard.add(*['Мои настройки', 'Выбор клавиатуры'])
 
     # добавляем кнопки группы
     buttons = []
@@ -63,9 +77,11 @@ async def create_buttons(message: types.Message):
     user_name = message.from_user.username
     user_id = message.from_user.id
     group = message.text
+    if group == 'Назад' and users_db.users[user_name].menu:
+        group = users_db.users[user_name].menu
     is_admin = message.chat.id in ADMINS
     button_list = await group_button_list(group, user_name, is_admin)
-    keyboard = await menu_keyboard(button_list, is_admin, user_name == 'dariasuv')
+    keyboard = await menu_keyboard(button_list, is_admin, user_id)
     text_message = "создана группа кнопок '" + group + "'"
 
     if is_admin:
@@ -86,7 +102,7 @@ async def create_buttons_2(call: types.CallbackQuery):
     user_name = call.from_user.username
     user_id = call.from_user.id
     button_list = await group_button_list(group, user_name, is_admin)
-    keyboard = await menu_keyboard(button_list, is_admin, user_name == 'dariasuv')
+    keyboard = await menu_keyboard(button_list, is_admin, user_id)
     text_message = "создана группа кнопок '" + group + "'"
 
     if is_admin:

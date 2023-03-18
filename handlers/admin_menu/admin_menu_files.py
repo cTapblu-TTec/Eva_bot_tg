@@ -11,6 +11,7 @@ from utils.admin_utils import download_sended_file
 from utils.log import log
 from work_vs_db.db_adm_chats import adm_chats_db
 from work_vs_db.db_filess import f_db
+from work_vs_db.db_moderators import moderators_db
 
 
 class FCM(StatesGroup):
@@ -21,16 +22,21 @@ class FCM(StatesGroup):
     waite_new_file = State()
 
 
-async def files_keyboard():
+async def files_keyboard(chat_id):
     keyboard = InlineKeyboardMarkup(row_width=1)
-    for file in f_db.files:
-        length_file = await f_db.get_len_file(file)
-        text = f'{file} --==-- {f_db.files[file].num_line} из {length_file}'
-        keyboard.add(InlineKeyboardButton(text=text, callback_data='f_value/' + file))
-    keyboard.add(InlineKeyboardButton(text='Удалить файл', callback_data='dell_file'))
-    keyboard.add(InlineKeyboardButton(text='Прислать файл с сервера', callback_data='send_file'))
-    keyboard.add(InlineKeyboardButton(text='Загрузить новый файл', callback_data='new_file'))
-    keyboard.add(InlineKeyboardButton(text='Инструкция по загрузке файлов', callback_data='tutor_file'))
+    if await moderators_db.check_access_moderator(chat_id, 'access_to_files_tools', 'num_line'):
+        for file in f_db.files:
+            length_file = await f_db.get_len_file(file)
+            text = f'{file} --==-- {f_db.files[file].num_line} из {length_file}'
+            keyboard.add(InlineKeyboardButton(text=text, callback_data='f_value/' + file))
+    if await moderators_db.check_access_moderator(chat_id, 'access_to_files_tools', 'del_file'):
+        keyboard.add(InlineKeyboardButton(text='Удалить файл', callback_data='dell_file'))
+    if await moderators_db.check_access_moderator(chat_id, 'access_to_files_tools', 'send_me_file'):
+        keyboard.add(InlineKeyboardButton(text='Прислать файл с сервера', callback_data='send_file'))
+    if await moderators_db.check_access_moderator(chat_id, 'access_to_files_tools', 'add_new_file'):
+        keyboard.add(InlineKeyboardButton(text='Загрузить новый файл', callback_data='new_file'))
+    if await moderators_db.check_access_moderator(chat_id, 'access_to_files_tools', 'instr'):
+        keyboard.add(InlineKeyboardButton(text='Инструкция по загрузке файлов', callback_data='tutor_file'))
     return keyboard
 
 
@@ -39,7 +45,7 @@ async def files_keyboard():
 async def files_menu(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_options'
     chat_id = call.message.chat.id
-    keyboard = await files_keyboard()
+    keyboard = await files_keyboard(chat_id)
     text = "Настройка файлов:"
 
     await state.finish()
@@ -78,7 +84,7 @@ async def new_file_2(message: types.Message, state: FSMContext):
         await create_level_menu(chat_id=chat_id, level=type_menu, text=(reply_mess + 'Новый файл загружен'))
         await edit_message(chat_id=chat_id,
                            type_menu='id_msg_options',
-                           keyboard=(await files_keyboard()),
+                           keyboard=(await files_keyboard(chat_id)),
                            text=f"Файл '{message.document.file_name}' добавлен")
         await log.write(f'admin_menu: Загружен файл - {message.document.file_name}, ({message.from_user.username})')
     else:
@@ -93,11 +99,12 @@ async def tutor_file(call: types.CallbackQuery, state: FSMContext):
     chat_id = call.message.chat.id
     files = ", ".join(f_db.files)
     t = "Вы можете отправить боту файлы для работы с ними:\n " \
-        "1) При обычной отправке бот заменит старый файл с такимже именем и вернет вам его с " \
+        "1) При обычной отправке бот заменит старый файл с таким же именем и вернет вам его с " \
         "информацией сколько строк отработано.\n" \
         "(Заменить можно следующие файлы: "f"{files})\n" \
         "2) В меню файлов есть режим 'Загрузить новый файл', после нажатия этой кнопки боту можно отправить файл," \
         " которого раньше небыло.\n" \
+        "          ВНИМАНИЕ:\n" \
         "- Если после загрузки файла бот стал неправильно работать, отправьте обратно боту старый файл, " \
         "разберитесь что не так с вашим файлом и снова попробуйте его загрузить.\n" \
         "- Если в файле есть русские символы, убедитесь что его кодировка - UTF8\n" \
@@ -148,7 +155,7 @@ async def dell_file_2(call: types.CallbackQuery, state: FSMContext):
             await f_db.write(file_name, 'dell_file')
             await edit_message(chat_id=chat_id,
                                type_menu='id_msg_options',
-                               keyboard=(await files_keyboard()),
+                               keyboard=(await files_keyboard(chat_id)),
                                text=f"Файл '{file_name}' удален")
             await create_level_menu(chat_id=chat_id, level=type_menu, text=text)
             await log.write(f"admin_menu: файл '{file_name}' удален, ({call.from_user.username})")
@@ -254,7 +261,7 @@ async def file_read_value(message: types.Message, state: FSMContext):
 
             await edit_message(chat_id=chat_id,
                                type_menu='id_msg_options',
-                               keyboard=(await files_keyboard()),
+                               keyboard=(await files_keyboard(chat_id)),
                                text=f"№ текущей строки '{num_line}' для файла '{file}' установлено")
             await log.write(f"admin_menu: {text} ({message.from_user.username})")
         else:

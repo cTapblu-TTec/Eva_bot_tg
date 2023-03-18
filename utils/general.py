@@ -85,7 +85,7 @@ async def general(text, username, chat_id, blocks=1):
 
     # если с номером
     if button.num_block:
-        await buttons_db.write(button_name, 'n_block', buttons_db.buttons[button_name].num_block)
+        await buttons_db.write(button_name, 'n_block')
 
     # если с шаблоном
     if button.shablon_file and button.shablon_file != 'gena.txt':

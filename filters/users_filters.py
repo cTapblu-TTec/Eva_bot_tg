@@ -5,22 +5,14 @@ from data.config import ADMINS
 from utils.face_control import control
 from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_groups_buttons import groups_db
+from work_vs_db.db_moderators import moderators_db
 from work_vs_db.db_users import users_db
 
 
 # ГОСТИ
 class FilterForGuest(BoundFilter):
-    async def check(self, message: types.Message):
-        user = await control(message.from_user.id, message.from_user.username)
-        if user == "guest":
-            return True
-        return False
-
-
-class CallFilterForGuest(BoundFilter):
-    async def check(self, callback: types.CallbackQuery):
-        # проверяем статус пользователя
-        user = await control(callback.from_user.id, callback.from_user.username)
+    async def check(self, query):
+        user = await control(query.from_user.id, query.from_user.username)
         if user == "guest":
             return True
         return False
@@ -59,8 +51,10 @@ class FilterForGeneral(BoundFilter):
 
 class FilterForBattonsMenu(BoundFilter):
     async def check(self, message: types.Message):
+        if message.text == 'Назад':
+            return True
         group = message.text
-        if group in buttons_db.buttons_groups:
+        if group in groups_db.groups:
             if groups_db.groups[group].hidden == 0:
                 return True
             else:
@@ -78,7 +72,7 @@ class CallFilterForBattonsMenu(BoundFilter):
             query = callback.data.split('/')
             if query[0] == 'menu_groups':
                 group = query[1]
-                if group in buttons_db.buttons_groups:
+                if group in groups_db.groups:
                     if groups_db.groups[group].hidden == 0:
                         return True
                     else:
@@ -93,7 +87,8 @@ class CallFilterForBattonsMenu(BoundFilter):
 class CallFilterForError(BoundFilter):
     async def check(self, callback: types.CallbackQuery):
         # проверяем статус пользователя
-        if callback.message.chat.id not in ADMINS:
+        chat_id = callback.message.chat.id
+        if chat_id not in ADMINS and chat_id not in moderators_db.moderators:
             return True
         return False
 
@@ -119,4 +114,3 @@ def registry_user_filters(dp: Dispatcher):
     dp.filters_factory.bind(FilterForGuest)
     dp.filters_factory.bind(FilterForStart)
     dp.filters_factory.bind(CallFilterForError)
-    dp.filters_factory.bind(CallFilterForGuest)

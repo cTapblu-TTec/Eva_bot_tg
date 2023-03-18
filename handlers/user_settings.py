@@ -8,9 +8,8 @@ from filters.users_filters import CallFilterUser
 from loader import dp
 from utils.admin_utils import get_button_clicks
 from utils.log import log
-from utils.user_utils import create_user_menu, delete_old_user_menu
+from utils.user_utils import create_user_menu, delete_old_user_menu, button_is_available
 from work_vs_db.db_buttons import buttons_db
-from work_vs_db.db_groups_buttons import groups_db
 from work_vs_db.db_stat import stat_db
 from work_vs_db.db_users import users_db
 
@@ -82,12 +81,13 @@ async def user_blocks(call: types.CallbackQuery, state: FSMContext):
 #  ----====  ЧТЕНИЕ ЗНАЧЕНИЯ  ====----
 @dp.message_handler(state=FCM.waite_my_new_name)
 async def button_read_value(message: types.Message, state: FSMContext):
+    chat_id = message.from_user.id
+    username = message.from_user.username
+
     new_name = message.text.strip()
     new_name = new_name.lstrip('@')
     iskl = ' !"$%&()*+,/:;<>=?@^#{}|~'
     begin = True
-
-    await state.finish()
     for i in iskl:
         if i in new_name:
             begin = False
@@ -96,11 +96,14 @@ async def button_read_value(message: types.Message, state: FSMContext):
     if not begin:
         await message.answer('Недопустимое имя')
         return
-    user_name = message.from_user.username
-    users_db.users[user_name].user_stat_name = new_name
-    await users_db.write(user_name, ['user_stat_name'], [new_name])
+    text = f'Установлено имя "{new_name}"'
+    users_db.users[username].user_stat_name = new_name
+
+    await state.finish()
+    await users_db.write(username, ['user_stat_name'], [new_name])
     await message.answer(f'Установлено имя "{new_name}"')
-    await log.write(f'Установлено имя "{new_name}"', user=user_name)
+    await create_user_menu(chat_id, username, text)
+    await log.write(f'Установлено имя "{new_name}"', user=username)
 
 
 @dp.callback_query_handler(text='Много блоков за клик')
@@ -162,25 +165,6 @@ async def user_stat(call: types.CallbackQuery):
         if cliks: button_cliks = f' ({cliks})'
         return f"• {button_name}{button_cliks} - {button_specification}\n"
 
-    def button_is_available(butt, user):
-        is_available_user = False
-        button_in_available_group = False
-        list_available_grous = []
-        for group in buttons_db.buttons_groups:
-            if groups_db.groups[group].hidden == 0 or \
-                    (groups_db.groups[group].users and user in groups_db.groups[group].users):
-                list_available_grous.append(group)
-        for group in list_available_grous:
-            if buttons_db.buttons[button].group_buttons and group in buttons_db.buttons[butt].group_buttons:
-                button_in_available_group = True
-        if buttons_db.buttons[butt].hidden == 0 or \
-                (buttons_db.buttons[butt].users and user in buttons_db.buttons[butt].users):
-            is_available_user = True
-        if button_in_available_group and is_available_user:
-            return True
-        else:
-            return False
-
     text = 'кнопка (осталось нажатий) - описание:\n'
     text_stat = ''
     text_not_stat = ''
@@ -188,7 +172,7 @@ async def user_stat(call: types.CallbackQuery):
     is_admin = call.message.chat.id in ADMINS
 
     for button in buttons_db.buttons:
-        if button_is_available(button, user_name) or (is_admin and buttons_db.buttons[button].hidden == 0):
+        if await button_is_available(button, user_name) or (is_admin and buttons_db.buttons[button].hidden == 0):
             cliks = await get_button_clicks(button)
             if buttons_db.buttons[button].statistical == 1:
                 text_stat += button_text(button)

@@ -2,8 +2,6 @@ import asyncpg
 from dataclasses import dataclass
 from transliterate import translit
 
-from work_vs_db.db_buttons import buttons_db
-
 
 @dataclass()
 class GroupButtons:
@@ -16,12 +14,12 @@ class GroupButtons:
 
 class GroupsButtonsDatabase:
     pool: asyncpg.Pool
-    groups: dict
-    en_names_groups: list = []
+    groups: dict = {}
+    en_names_groups: list
 
     #
     # __________CREATE__________
-    async def create(self, pool: asyncpg.Pool):
+    async def create(self, list_groups = None, pool: asyncpg.Pool = None):
         if pool: self.pool = pool
         # await self.dell()
         query = """CREATE TABLE IF NOT EXISTS public.groups_buttons
@@ -35,13 +33,19 @@ class GroupsButtonsDatabase:
                     """
         async with self.pool.acquire(): await self.pool.execute(query)
 
-        for i in buttons_db.buttons_groups:
-            query = """INSERT INTO groups_buttons (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
-            async with self.pool.acquire(): await self.pool.execute(query, i)
+        if not list_groups:
+            list_groups = list(self.groups)
 
-        self.groups = {i: await self.read(i) for i in buttons_db.buttons_groups}
-        for group in self.groups:
-            self.en_names_groups.append(self.groups[group].en_name)
+        for group in list_groups:
+            if group not in self.groups:
+                query = """INSERT INTO groups_buttons (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
+                async with self.pool.acquire(): await self.pool.execute(query, group)
+
+        self.groups = {}
+        self.en_names_groups = []
+        for group in list_groups:
+            await self.read(group)
+
         await self.dell_old()
 
     #
@@ -51,7 +55,6 @@ class GroupsButtonsDatabase:
         query = """SELECT * FROM groups_buttons;"""
         async with self.pool.acquire():
             groups_all = await self.pool.fetch(query)
-        if groups_all: groups_all = groups_all
         query = ""
         for group in groups_all:
             if group['name'] not in self.groups:
@@ -67,7 +70,6 @@ class GroupsButtonsDatabase:
         query = """SELECT * FROM groups_buttons WHERE name = $1;"""
         async with self.pool.acquire():
             gr = await self.pool.fetch(query, group_name)
-        group = None
         if gr:
             en_name = group_name.lower()[:30].replace(' ', '_')
             en_name = translit(en_name, language_code='ru', reversed=True)
@@ -80,45 +82,36 @@ class GroupsButtonsDatabase:
                         specification=gr['specification'],
                         hidden=gr['hidden']
                         )
-        return group
+            self.groups.update({group_name: group})
+            self.en_names_groups.append(en_name)
 
     #
     # __________WRITE__________
-    async def write(self, group_name: str, command, values=None):
-        if command == 'add_group':
-            # await self.dell_old()
-            query = """INSERT INTO groups_buttons (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
-            async with self.pool.acquire(): await self.pool.execute(query, group_name)
+    async def write(self, group_name: str, tools, values):
 
-            group = await self.read(group_name)
-            self.groups.update({group_name: group})
-
-        elif command == 'dell_group':
-            query = """DELETE FROM groups_buttons WHERE name = ($1);"""
+        columns = tools
+        for i in range(len(columns)):
+            if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None, ''):
+                query = f"""UPDATE groups_buttons SET {columns[i]} = NULL WHERE name = $1;"""
+            else:
+                query = f"""UPDATE groups_buttons SET {columns[i]} = '{values[i]}' WHERE name = $1;"""
             async with self.pool.acquire():
                 await self.pool.execute(query, group_name)
-            self.groups.pop(group_name)
 
-        else:
-            columns = command
-            # ['name', 'group_buttons', 'work_file', 'num_block', 'size_blok', 'shablon_file', 'active']
-
-            for i in range(len(columns)):
-                if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None, ''):
-                    query = f"""UPDATE groups_buttons SET {columns[i]} = NULL WHERE name = $1;"""
-                else:
-                    query = f"""UPDATE groups_buttons SET {columns[i]} = '{values[i]}' WHERE name = $1;"""
-                async with self.pool.acquire():
-                    await self.pool.execute(query, group_name)
-            group = await self.read(group_name)
-            self.groups.update({group_name: group})
+        await self.create()
 
     #
     # __________DELETE TABLE__________
     async def dell(self):
-
         query = 'DROP TABLE public.groups_buttons;'
         async with self.pool.acquire(): await self.pool.execute(query)
+
+    async def get_all_from_bd(self):
+        query = """SELECT * FROM groups_buttons"""
+        async with self.pool.acquire():
+            all = await self.pool.fetch(query)
+        all_groups = [dict(row) for row in all]
+        return all_groups
 
 
 groups_db = GroupsButtonsDatabase()

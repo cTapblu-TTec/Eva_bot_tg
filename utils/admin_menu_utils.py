@@ -28,7 +28,7 @@ async def delete_last_menu(chat_id: int):
     list_menus = []
     last = 'id_msg_settings'
     if chat_id in adm_chats_db.chats:
-        chat = adm_chats_db.chats[chat_id]
+        chat = adm_chats_db.chats.get(chat_id)
         if chat is None: return
         for level in levels:
             if getattr(chat, level, None):
@@ -48,21 +48,27 @@ async def delete_loue_level_menu(chat_id: int, type_menu: str):
 
 
 async def delete_old_message(chat_id: int, type_menu: str):
+    async def del_mess():
+        try:
+            await bot.delete_message(chat_id=chat_id, message_id=message_id)
+        except BadRequest:
+            with suppress(BadRequest):
+                await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text='Сообщение удалено')
+
     if chat_id in adm_chats_db.chats:
-        chat = adm_chats_db.chats[chat_id]
+        chat = adm_chats_db.chats.get(chat_id)
         if chat is None: return
         message_id = getattr(chat, type_menu, None)
         if message_id is None: return
         await adm_chats_db.write(chat_id=chat_id, tools=[type_menu], values=['None'])
-        with suppress(BadRequest):
-            create_task(bot.delete_message(chat_id=chat_id, message_id=message_id))
+        create_task(del_mess())
 
 
 async def create_menu_back(chat_id, text="Создано меню 'Назад'"):
     if chat_id in adm_chats_db.chats:
         type_menu = 'id_msg_system'
-        chat = adm_chats_db.chats[chat_id]
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True).add('Назад', 'Настройки бота')
+        chat = adm_chats_db.chats.get(chat_id)
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True).add('Назад', 'Админка')
         if chat is None: return
         if not chat.menu_back:
             await adm_chats_db.write(chat_id=chat_id, tools=['menu_back', 'menu_cancel'], values=['true', 'false'])
@@ -73,7 +79,7 @@ async def create_menu_back(chat_id, text="Создано меню 'Назад'")
 async def create_menu_cancel(chat_id, text="Создано меню 'Отмена'"):
     if chat_id in adm_chats_db.chats:
         type_menu = 'id_msg_system'
-        chat = adm_chats_db.chats[chat_id]
+        chat = adm_chats_db.chats.get(chat_id)
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True).add('Отмена')
         if chat is None: return
         if not chat.menu_cancel:
@@ -83,17 +89,20 @@ async def create_menu_cancel(chat_id, text="Создано меню 'Отмен�
 
 
 async def edit_message(chat_id: int, type_menu: str, keyboard=None, text: str = '⁣'):
+    async def edit_mess():
+        with suppress(BadRequest):
+            await bot.edit_message_text(chat_id=chat_id, message_id=message_id, reply_markup=keyboard, text=text)
+
     if chat_id in adm_chats_db.chats:
-        chat = adm_chats_db.chats[chat_id]
+        chat = adm_chats_db.chats.get(chat_id)
         if chat is None: return
         message_id = getattr(chat, type_menu)
         if message_id is None: return
-        with suppress(Exception):
-            create_task(bot.edit_message_text(chat_id=chat_id, message_id=message_id, reply_markup=keyboard, text=text))
+        create_task(edit_mess())
 
 
-async def delete_all_after_time(_chat_id: int, _time: int = 30):
-    async def insert_def(chat_id: int, time: int):
+async def delete_all_after_time(chat_id: int, time: int = 30):
+    async def insert_def():
         Data.time_saved[chat_id] = (datetime.now().hour*100 + datetime.now().minute)
         await sleep(60*time)  # ждем time минут
         time_now = datetime.now().hour*100 + datetime.now().minute
@@ -102,4 +111,4 @@ async def delete_all_after_time(_chat_id: int, _time: int = 30):
             for type_menu in types_m:
                 await delete_old_message(chat_id, type_menu)
 
-    create_task(insert_def(_chat_id, _time))
+    create_task(insert_def())

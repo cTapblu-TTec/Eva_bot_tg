@@ -28,7 +28,7 @@ class StatDatabase:
 
     # ______GET personal______
     async def get_personal_stat(self, user_name):
-        def get_list_users_in_statistic():
+        async def get_list_users_in_statistic():
             users = [user_name]
             if users_db.users[user_name].user_stat_name:
                 user_stat_name = users_db.users[user_name].user_stat_name
@@ -40,7 +40,7 @@ class StatDatabase:
             return users
 
         async def get_user_stat():
-            query = 'SELECT * FROM statistic WHERE user_name = $1;'
+            query = 'SELECT * FROM "statistic" WHERE "user_name" = $1;'
             async with self.pool.acquire():
                 stat = await self.pool.fetch(query, user)
             in_statistic = ''
@@ -56,11 +56,14 @@ class StatDatabase:
                 for button in stat_l:
                     if stat_l[button] > 0:
                         text = f'\n• {button} - {stat_l[button]}'
-                        butt = buttons_db.buttons[button]
-                        if butt.hidden == 0 and butt.statistical == 1:
-                            in_statistic += text
+                        butt = buttons_db.buttons.get(button)
+                        if butt:
+                            if butt.hidden == 0 and butt.statistical == 1:
+                                in_statistic += text
+                            else:
+                                not_in_statistic += text
                         else:
-                            not_in_statistic += text
+                            in_statistic += text
                 if in_statistic:
                     result += f'Идет в статистику:{in_statistic}\n'
                 if not_in_statistic:
@@ -68,7 +71,7 @@ class StatDatabase:
             return result
 
         user_stats = ''
-        for user in get_list_users_in_statistic():
+        for user in await get_list_users_in_statistic():
             user_stats += f'\n    {user}\n{await get_user_stat()}'
         return user_stats
 
@@ -106,25 +109,26 @@ class StatDatabase:
 
     # ______WRITE______
     #   ведение statistic
+    # INSERT INTO distributors (did, dname)
+    # VALUES (5, 'Gizmo Transglobal'), (6, 'Associated Computing, Inc')
+    # ON CONFLICT (did) DO UPDATE SET dname = EXCLUDED.dname;
     async def write(self, button_name, user_name: str, blocks: int):
-
-        button_name = button_name.replace(' ', '_')
 
         # ДОБАВЛЕНИЕ в БД пользователя
         if self.users_st == [] or user_name not in self.users_st:
-            query = """INSERT INTO statistic (user_name) VALUES ($1) ON CONFLICT (user_name) DO NOTHING;"""
+            query = """INSERT INTO "statistic" (user_name) VALUES ($1) ON CONFLICT (user_name) DO NOTHING;"""
             async with self.pool.acquire(): await self.pool.execute(query, user_name)
             self.users_st.append(user_name)
 
         # ДОБВЛЕНИЕ СТОЛБЦА
         if button_name not in self.columns:
-            query = f"""ALTER TABLE public.statistic ADD COLUMN IF NOT EXISTS {button_name} smallint DEFAULT 0;"""
+            query = f"""ALTER TABLE public.statistic ADD COLUMN IF NOT EXISTS "{button_name}" smallint DEFAULT 0;"""
 
             async with self.pool.acquire(): await self.pool.execute(query)
             self.columns.append(button_name)
 
         # ОБНОВЛЕНИЕ статистики пользователя
-        query = f"""UPDATE statistic SET {button_name} = {button_name} + {blocks} WHERE user_name = $1;"""
+        query = f"""UPDATE statistic SET "{button_name}" = "{button_name}" + {blocks} WHERE user_name = $1;"""
         async with self.pool.acquire(): await self.pool.execute(query, user_name)
 
     # ______CLEAR______
@@ -146,27 +150,28 @@ stat_db = StatDatabase()
 
 
 async def get_sort_stat(stat, get_all):
+    stat = [dict(row) for row in stat]
     statistic = {}
     buttons = {}
-    for user in stat:
-        user_name = user['user_name']
+    for st_user in stat:
+        user_name = st_user['user_name']
         # имя пользователя
         if users_db.users[user_name].user_stat_name:
             user_stat_name = users_db.users[user_name].user_stat_name
         else:
             user_stat_name = user_name
-
         user_stat = {}
-        for button in user.keys():
-            if isinstance(user[button], int) and user[button] > 0:
-                butt = buttons_db.buttons[button]
-                if (butt.hidden == 0 and butt.statistical == 1) or get_all:
-                    user_stat[button] = user[button]
-                    if button not in buttons:
-                        buttons[button] = user[button]
-                    else:
-                        buttons[button] += user[button]
-                    # складывать значения для кнопки
+        for button in st_user:
+            if button != 'user_name' and st_user[button] > 0:
+                if button in buttons_db.buttons:
+                    butt = buttons_db.buttons[button]
+                    if (butt and butt.hidden == 0 and butt.statistical == 1) or get_all:
+                        user_stat[button] = st_user[button]
+                        if button not in buttons:
+                            buttons[button] = st_user[button]
+                        else:
+                            buttons[button] += st_user[button]
+                            # складывать значения для кнопки
 
         if not statistic.get(user_stat_name):
             statistic[user_stat_name] = user_stat
@@ -179,15 +184,15 @@ async def get_sort_stat(stat, get_all):
                 i += 1
             statistic[user_stat_name] = user_stat
     sort = {}
-    for user in statistic:
-        user_clicks = list(statistic[user].values())
-        sort[user] = sum(user_clicks)
+    for st_user in statistic:
+        user_clicks = list(statistic[st_user].values())
+        sort[st_user] = sum(user_clicks)
     sort = dict(sorted(sort.items(), key=lambda item: item[1], reverse=True))
     buttons = dict(sorted(buttons.items(), key=lambda item: item[1], reverse=True))
     sort_stat = {}
-    for user in sort:
-        if sort[user] > 0:
-            sort_stat[user] = statistic[user]
+    for st_user in sort:
+        if sort[st_user] > 0:
+            sort_stat[st_user] = statistic[st_user]
     return sort_stat, buttons
 
 

@@ -51,8 +51,32 @@ async def download_sended_file(file_id, file_name):
 async def reset_statistics():
     await stat_db.get_html()
     with open('statistic.html', 'rb') as file:
+        await bot.send_document(ADMIN_LOG_CHAT, file, caption='Статистика')
+
+    await stat_db.get_html(get_all=True, file_stat='all_butt_stat.html')
+    with open('all_butt_stat.html', 'rb') as file:
         await bot.send_document(ADMIN_LOG_CHAT, file, caption='Статистика и счетчики сторис (блоков) сброшены')
+
     await stat_db.dell()
     await stat_db.create(None)
-    buttons_db.reset_buttons_num_blocks()
+    await buttons_db.reset_buttons_num_blocks()
     Guests.guests = {}
+
+
+def get_key_by_value(dic, val):
+    for i in dic:
+        if dic[i] == val:
+            return i
+    return None
+
+
+def good_format(text: str):
+    if text and ',' in text:
+        _list = text.split(',')
+        new_list = []
+        for i in _list:
+            i = i.strip()
+            if i:
+                new_list.append(i)
+        text = ",".join(new_list)
+    return text

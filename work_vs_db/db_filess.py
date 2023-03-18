@@ -17,7 +17,7 @@ class File:
 
 class FilesDatabase:
     pool: asyncpg.Pool
-    files: dict
+    files: dict = {}
 
     #
     # __________CREAT__________
@@ -38,16 +38,8 @@ class FilesDatabase:
             await self.pool.execute(query)
 
         ff = await self.read('get_names_files', '')
-        if not ff:
-            with open('files.txt', 'r', encoding='utf-8') as f:
-                ff = f.readlines()
-            query = """INSERT INTO filess (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
-            for file in ff:
-                file = file.rstrip('\n')
-                async with self.pool.acquire(): await self.pool.execute(query, file)
-            ff = await self.read('get_names_files', '')
-
-        self.files = {i: await self.read('', i) for i in ff}
+        for file in ff:
+            await self.read('', file)
 
         files_in_dir = os.listdir('dir_files/')
         for file in files_in_dir:
@@ -63,10 +55,12 @@ class FilesDatabase:
 
         if command == 'get_names_files':
             query = """SELECT name FROM filess WHERE active = 1;"""
-            async with self.pool.acquire(): u = await self.pool.fetch(query)
+            async with self.pool.acquire():
+                u = await self.pool.fetch(query)
             files_names = []
-            for i in u:
-                files_names.append(i['name'])
+            if u:
+                for i in u:
+                    files_names.append(i['name'])
             return files_names
 
         else:
@@ -81,7 +75,7 @@ class FilesDatabase:
                             active=u[0]['active'],
                             length=u[0]['length']
                             )
-            return file
+            self.files.update({file_name: file})
 
     #
     # __________WRITE__________
@@ -90,8 +84,7 @@ class FilesDatabase:
         if command == 'add_file':
             query = """INSERT INTO filess (name) VALUES ($1) ON CONFLICT (name) DO NOTHING;"""
             async with self.pool.acquire(): await self.pool.execute(query, file_name)
-            file = await self.read('', file_name)
-            self.files.update({file_name: file})
+            await self.read('', file_name)
 
         elif command == 'dell_file':
             if file_name in ['name.txt', 'gena.txt']:
@@ -117,8 +110,7 @@ class FilesDatabase:
                 query = f"""UPDATE filess SET {columns[i]} = '{values[i]}' WHERE name = $1;"""
                 async with self.pool.acquire(): await self.pool.execute(query, file_name)
 
-            file = await self.read('', file_name)
-            self.files.update({file_name: file})
+            await self.read('', file_name)
 
     #
     # __________DELETE TABLE__________
@@ -140,10 +132,12 @@ class FilesDatabase:
             except FileNotFoundError:
                 await notify_admins(f'файл {file} не найден')
 
-
-async def another():
-    content = os.listdir('dir_files/')
-    print(content)
+    async def get_all_from_bd(self):
+        query = """SELECT * FROM filess"""
+        async with self.pool.acquire():
+            all = await self.pool.fetch(query)
+        all_files = [dict(row) for row in all]
+        return all_files
 
 
 f_db = FilesDatabase()

@@ -24,6 +24,8 @@ async def errors_call(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_back(call.message.chat.id)
     await delete_last_menu(call.message.chat.id)
+    await call.message.answer("Отменено")
+
     # await call.message.answer("Что-то пошло не так")
     # print(f'Ошибка кнопок, call.data: {call.data}, state:', st)
     # await log.write(f"Ошибка кнопок, call.data: '{call.data}', state:', {st} ({call.from_user.username})")
@@ -36,6 +38,8 @@ async def errors_mess(message: types.Message, state: FSMContext):
     await state.finish()
     await create_menu_back(message.chat.id)
     await delete_last_menu(message.chat.id)
+    await message.answer("Отменено")
+
     # await message.answer("Что-то пошло не так")
     # print(f'admin: Ошибка сообщений, message: {message.text}, state:', state)
     # await log.write(f"admin: Ошибка кнопок, message: '{message.text}' ({message.from_user.username})")

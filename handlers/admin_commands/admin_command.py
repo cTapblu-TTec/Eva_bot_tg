@@ -1,7 +1,9 @@
 from aiogram import types
 import sys
+from aiogram.utils.exceptions import BadRequest
 
 from data.config import ADMIN_LOG_CHAT
+from filters.admin_filters import FilterCheckAdmin
 from loader import dp
 from utils.log import log
 from work_vs_db.db_buttons import buttons_db
@@ -10,7 +12,7 @@ from work_vs_db.db_groups_buttons import groups_db
 from work_vs_db.db_users import users_db
 
 
-@dp.message_handler(commands=['admin'])
+@dp.message_handler(FilterCheckAdmin(), commands=['admin'])
 async def adm_commands(message: types.Message):
     await message.answer(
          "/set - тонкая настройка файлов\n"
@@ -20,11 +22,13 @@ async def adm_commands(message: types.Message):
          "/dlUser - удалить пользователя\n"
          "/exit - выключить бота\n"
          "/sys - память системы\n"
+         "/send_log - прислать файл лога\n"
+         "/clear_log - очистить файл лога"
     )
     await log.write(f'admin: {message.text}, ({message.from_user.username})')
 
 
-@dp.message_handler(commands=['set'])
+@dp.message_handler(FilterCheckAdmin(), commands=['set'])
 async def adm_set_files(message: types.Message):
     text = message.text[5:].strip()
     ass = False
@@ -46,12 +50,12 @@ async def adm_set_files(message: types.Message):
         ass = True
     if ass:
         await message.answer("Ошибка ввода, пример:\n/set vk_gruppa.txt num_line 0\n"
-                             f"список доступных файлов:\n{f_db.files}\n"
+                             f"список доступных файлов:\n{list(f_db.files)}\n"
                              "список доступных переменных:\n"
                              "'num_line', 'active'(0,1)")
 
 
-@dp.message_handler(commands=['set_b'])
+@dp.message_handler(FilterCheckAdmin(), commands=['set_b'])
 async def adm_set_butt(message: types.Message):
     text = message.text[7:].strip()
     ass = False
@@ -79,7 +83,7 @@ async def adm_set_butt(message: types.Message):
                              "'size_blok'(1-10), 'shablon_file', 'active'(0,1)")
 
 
-@dp.message_handler(commands=['read_bd'])
+@dp.message_handler(FilterCheckAdmin(), commands=['read_bd'])
 async def adm_read_bd(message: types.Message):
     await f_db.create(None)
     await buttons_db.create()
@@ -89,14 +93,14 @@ async def adm_read_bd(message: types.Message):
     await log.write(f'admin: {message.text}, ({message.from_user.username})')
 
 
-@dp.message_handler(commands=['exit'])
+@dp.message_handler(FilterCheckAdmin(), commands=['exit'])
 async def adm_exit(message: types.Message):
     await log.send_log_now()
     await dp.bot.send_message(ADMIN_LOG_CHAT, f"БОТ ОСТАНОВЛЕН!, ({message.from_user.username})")
     sys.exit()
 
 
-@dp.message_handler(commands=['sys'])
+@dp.message_handler(FilterCheckAdmin(), commands=['sys'])
 async def adm_exit(message: types.Message):
     import psutil
     text = ''
@@ -118,7 +122,7 @@ async def adm_exit(message: types.Message):
                          f"used {mem_used:.4} from {mem_total:.4} Gb memory ({mem.percent}%)")
 
 
-@dp.message_handler(commands=['adUser'])
+@dp.message_handler(FilterCheckAdmin(), commands=['adUser'])
 async def adm_ad_user(message: types.Message):
     new_user = message.text[8:]
     answer = await users_db.add_user(new_user)
@@ -126,9 +130,35 @@ async def adm_ad_user(message: types.Message):
     await log.write(f'admin: {answer}, ({message.from_user.username})')
 
 
-@dp.message_handler(commands=['dlUser'])
+@dp.message_handler(FilterCheckAdmin(), commands=['dlUser'])
 async def adm_dell_user(message: types.Message):
     user = message.text[8:]
     answer = await users_db.del_user(user)
     await message.answer(answer)
     await log.write(f'admin: {answer}, ({message.from_user.username})')
+
+
+@dp.message_handler(FilterCheckAdmin(), commands=['send_log'])
+async def adm_dell_user(message: types.Message):
+    mess = 'Системный лог'
+    try:
+        with open('log.log', 'rb') as f:
+            await message.reply_document(f, caption=mess)
+    except (FileNotFoundError, BadRequest):
+        mess = 'Лог не найден'
+        await message.answer(mess)
+    finally:
+        await log.write(f'admin: {mess}, ({message.from_user.username})')
+
+
+@dp.message_handler(FilterCheckAdmin(), commands=['clear_log'])
+async def adm_dell_user(message: types.Message):
+    mess = 'Лог очищен'
+    try:
+        with open('log.log', 'w'):
+            pass
+    except FileNotFoundError:
+        mess = 'Файл не найден'
+    finally:
+        await message.answer(mess)
+        await log.write(f'admin: {mess}, ({message.from_user.username})')

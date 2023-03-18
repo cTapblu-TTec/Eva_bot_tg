@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from aiogram import types
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.dispatcher import FSMContext
+from asyncpg import exceptions as asyncpg_ex
 
 from filters.admin_filters import CallFilter
 from utils.admin_menu_utils import create_menu_back, create_menu_cancel, edit_message, \
@@ -11,18 +12,18 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from loader import dp
 from utils.log import log
 from work_vs_db.db_adm_chats import adm_chats_db
-from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_groups_buttons import groups_db
-from work_vs_db.db_users import users_db
+from work_vs_db.db_moderators import moderators_db
+from work_vs_db.manager_bd import delete_group, change_group_tool
 
 
 @dataclass()
 class Data:
-    names_tools = {
+    group_tools = {
         'name': 'Имя группы',
         'hidden': 'Скрытая группа (1/0)',
         'users': 'Кому доступ скрытой',
-        'specification': 'Описание'
+        'specification': 'Описание',
     }
 
 
@@ -31,23 +32,26 @@ class FCM(StatesGroup):
     waite_value_group = State()
 
 
-async def groups_keyboard():
+async def groups_keyboard(chat_id):
     keyboard = InlineKeyboardMarkup(row_width=1)
     for group in groups_db.groups:
         keyboard.add(InlineKeyboardButton(text=f'Настройка группы "{group}"', callback_data='g_tool/' + group))
-    keyboard.add(InlineKeyboardButton(text='Про добавление групп', callback_data='add_group'))
+    if await moderators_db.check_access_moderator(chat_id, 'access_to_groups_tools', 'add_group_i'):
+        keyboard.add(InlineKeyboardButton(text='Про добавление групп', callback_data='add_group_i'))
     return keyboard
 
 
-async def tools_gr_keyboard(group):
+async def tools_gr_keyboard(group, chat_id):
     keyboard = InlineKeyboardMarkup(row_width=1)
-    for tool in Data.names_tools:
-        value = getattr(groups_db.groups[group], tool, None)
-        tool_text = Data.names_tools[tool]
-        c_data = f'gr_value/{group}/{tool}'
-        inline_button = InlineKeyboardButton(text=f'{tool_text} --==-- {value}', callback_data=c_data)
-        keyboard.add(inline_button)
-    keyboard.add(InlineKeyboardButton(text='Удалить группу', callback_data='dell_group/' + group))
+    for tool in Data.group_tools:
+        if await moderators_db.check_access_moderator(chat_id, 'access_to_groups_tools', tool):
+            value = getattr(groups_db.groups[group], tool, None)
+            tool_text = Data.group_tools[tool]
+            c_data = f'gr_value/{group}/{tool}'
+            inline_button = InlineKeyboardButton(text=f'{tool_text} --==-- {value}', callback_data=c_data)
+            keyboard.add(inline_button)
+    if await moderators_db.check_access_moderator(chat_id, 'access_to_groups_tools', 'del_group'):
+        keyboard.add(InlineKeyboardButton(text='Удалить группу', callback_data='del_group/' + group))
     return keyboard
 
 
@@ -57,7 +61,7 @@ async def groups_menu(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_options'
     chat_id = call.message.chat.id
     text = "Настройка групп кнопок:"
-    keyboard = await groups_keyboard()
+    keyboard = await groups_keyboard(chat_id)
 
     await state.finish()
     await create_menu_back(chat_id)
@@ -67,8 +71,8 @@ async def groups_menu(call: types.CallbackQuery, state: FSMContext):
     await delete_all_after_time(chat_id)
 
 
-#  ----====  ДОБАВИТЬ ГРУППУ ====----
-@dp.callback_query_handler(text='add_group', state='*')
+#  ----====  ПРО ДОБАВЛЕНИЕ ГРУПП ====----
+@dp.callback_query_handler(text='add_group_i', state='*')
 async def add_group(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_tools'
     chat_id = call.message.chat.id
@@ -84,8 +88,8 @@ async def add_group(call: types.CallbackQuery, state: FSMContext):
 
 
 #  ----====  УДАЛИТЬ ГРУППУ ====----
-@dp.callback_query_handler(CallFilter(startswith='dell_group'), state='*')
-async def dell_group(call: types.CallbackQuery, state: FSMContext):
+@dp.callback_query_handler(CallFilter(startswith='del_group'), state='*')
+async def del_group(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_tools'
     chat_id = call.message.chat.id
     group = call.data.split('/')[1]
@@ -94,24 +98,22 @@ async def dell_group(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await create_menu_back(chat_id)
     await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
-    if group in groups_db.groups:
-        await groups_db.write(group, 'dell_group', '')
-        await buttons_db.delete_group_from_buttons(group)
-        for user in users_db.users:
-            if group == users_db.users[user].menu:
-                await users_db.write(user, ['menu'], [None])
-                users_db.users[user].menu = None
+
+    try:
+        await delete_group(group)
+    except asyncpg_ex.PostgresError:
+        await create_level_menu(chat_id=chat_id, level=type_menu, text=f"Группа {group} не удалена")
+        await log.write(f"admin_menu: Группа {group} не удалена ({call.from_user.username})")
+    else:
         await edit_message(chat_id=chat_id,
                            type_menu='id_msg_options',
-                           keyboard=(await groups_keyboard()),
+                           keyboard=(await groups_keyboard(chat_id)),
                            text=f"Группа {group} удалена")
         await create_level_menu(chat_id=chat_id, level=type_menu, text=text)
         await log.write(f"admin_menu: Группа {group} удалена ({call.from_user.username})")
-    else:
-        await create_level_menu(chat_id=chat_id, level=type_menu, text=f"Группа {group} не найдена")
-        await log.write(f"admin_menu: Группа {group} не найдена ({call.from_user.username})")
-    await call.answer()
-    await delete_all_after_time(chat_id)
+    finally:
+        await call.answer()
+        await delete_all_after_time(chat_id)
 
 
 #  ----====  ВЫБОР ПАРАМЕТРА ГРУППЫ  ====----
@@ -121,7 +123,7 @@ async def group_tool_menu(call: types.CallbackQuery, state: FSMContext):
     chat_id = call.message.chat.id
     query = call.data.split('/')
     group = query[1]
-    keyboard = await tools_gr_keyboard(group)
+    keyboard = await tools_gr_keyboard(group, chat_id)
     text = f"Выберите параметр группы '{group}' для настройки:"
 
     await state.finish()
@@ -140,7 +142,7 @@ async def group_ask_value(call: types.CallbackQuery, state: FSMContext):
     query = call.data.split('/')
     group = query[1]
     tool = query[2]
-    tool_text = Data.names_tools[tool]
+    tool_text = Data.group_tools[tool]
     text = f"Введите значение параметра '{tool_text}' для группы '{group}'"
 
     await state.finish()
@@ -161,42 +163,33 @@ async def group_read_value(message: types.Message, state: FSMContext):
     group = adm_chats_db.chats[chat_id].option
     tool = adm_chats_db.chats[chat_id].tool
     value = message.text
-    tool_text = Data.names_tools[tool]
+    tool_text = Data.group_tools[tool]
     text = f"Значение '{value}' параметра '{tool_text}' для группы '{group}' установлено."
 
     await state.finish()
     await create_menu_back(chat_id)
     await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
     try:
-        await groups_db.write(group, [tool], [value])
-        if tool == 'name':
-            await buttons_db.change_value_for_all_buttons("group_buttons", group, value)
-            for user in users_db.users:
-                if group == users_db.users[user].menu:
-                    await users_db.write(user, ['menu'], [value])
-                    users_db.users[user].menu = value
-        if tool in ["name", "hidden", "users"]:
-            await buttons_db.create()
-            await groups_db.create(None)
-            # await message.answer("Данные обновлены из базы данных")
+        await change_group_tool(group, tool, value)
+    except asyncpg_ex.PostgresError:
+        ans = f"Значение '{value}' параметра '{tool_text}' для группы '{group}' не установлено!"
+        await create_level_menu(chat_id=chat_id, level=type_menu, text=ans)
+        await log.write(f"admin_menu: {ans} ({message.from_user.username})")
+    else:
         if tool == "name":
             group_name = value
             await edit_message(chat_id=chat_id,
                                type_menu='id_msg_options',
-                               keyboard=(await groups_keyboard()),
+                               keyboard=(await groups_keyboard(chat_id)),
                                text=f"Группа {group} переименована")
         else:
             group_name = group
         #  Обновление сообщения с tools
         await edit_message(chat_id=chat_id,
                            type_menu='id_msg_tools',
-                           keyboard=(await tools_gr_keyboard(group_name)),
+                           keyboard=(await tools_gr_keyboard(group_name, chat_id)),
                            text=text)
         await create_level_menu(chat_id=chat_id, level=type_menu, text=text)
         await log.write(f"admin_menu: {text} ({message.from_user.username})")
-    except Exception:
-        ans = f"Значение '{value}' параметра '{tool_text}' для группы '{group}' не установлено!"
-        await create_level_menu(chat_id=chat_id, level=type_menu, text=(ans + 'Введите новое значение'))
-        await state.set_state(FCM.waite_value_group.state)
-        await log.write(f"admin_menu: {ans} ({message.from_user.username})")
-    await delete_all_after_time(chat_id)
+    finally:
+        await delete_all_after_time(chat_id)

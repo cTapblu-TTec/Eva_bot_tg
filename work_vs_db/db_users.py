@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 @dataclass()
 class User:
+    user_name:  str
     user_stat_name: str
     user_id: int
     n_zamen: int
@@ -16,8 +17,9 @@ class User:
 
 class UsersDatabase:
     pool: asyncpg.Pool
-    users_names: list
-    users: dict
+    users_names: list = []
+    users_id_names: dict = {}
+    users: dict = {}
 
     # __________CREATE__________
     async def create(self, pool: asyncpg.Pool):
@@ -26,7 +28,7 @@ class UsersDatabase:
                     (
                         user_name character varying(30) COLLATE pg_catalog."default" NOT NULL,
                         user_stat_name varchar,
-                        user_id integer,
+                        user_id bigint,
                         n_zamen integer DEFAULT 0,
                         n_last_shabl varchar,
                         menu varchar,
@@ -41,7 +43,6 @@ class UsersDatabase:
         # ALTER TABLE IF EXISTS public.users DROP CONSTRAINT users_blocks_check;
         # ALTER TABLE public.users DROP COLUMN blocks;
         # ALTER TABLE public.users ADD CHECK (blocks >= 0 AND blocks <= 1);
-
         # query = """"""
         # async with self.pool.acquire(): await self.pool.execute(query)
 
@@ -54,11 +55,11 @@ class UsersDatabase:
                 user = user.rstrip('\n')
                 async with self.pool.acquire(): await self.pool.execute(query, user)
             names = await self.read('get_names_users', '')
-        self.users_names = names
-        self.users = {name: await self.read('', name) for name in names}
+        for name in names:
+            await self.read('', name)
 
     #
-    # __________READ__________
+    # __________READ__________ todo мб разделить на две функции
     async def read(self, command: str, user_name: str):
 
         if command == 'get_names_users':
@@ -75,10 +76,10 @@ class UsersDatabase:
             query = f"""SELECT * FROM users WHERE user_name = $1;"""
             async with self.pool.acquire():
                 u = await self.pool.fetch(query, user_name)
-            user = None
             if u:
                 u = u[0]
                 user = User(
+                    user_name=u['user_name'],
                     user_id=u['user_id'],
                     user_stat_name=u['user_stat_name'],
                     n_zamen=u['n_zamen'],
@@ -88,7 +89,11 @@ class UsersDatabase:
                     use_many_blocks=u['use_many_blocks'],
                     menu_mess_id=u['menu_mess_id']
                 )
-            return user
+                self.users.update({user_name: user})
+                if user.user_id:
+                    self.users_id_names.update({user.user_id: user_name})
+                if user_name not in self.users_names:
+                    self.users_names.append(user_name)
 
     #
     # __________WRITE__________
@@ -98,27 +103,27 @@ class UsersDatabase:
             query = """INSERT INTO users (user_name) VALUES ($1) ON CONFLICT (user_name) DO NOTHING;"""
             async with self.pool.acquire():
                 await self.pool.execute(query, user_name)
-            self.users_names.append(user_name)
-            user = await self.read('', user_name)
-            self.users.update({user_name: user})
+            await self.read('', user_name)
 
         elif command == 'dell_user':
             query = """DELETE FROM users WHERE user_name = $1;"""
             async with self.pool.acquire():
                 await self.pool.execute(query, user_name)
+            if self.users[user_name].user_id in self.users_id_names:
+                self.users_id_names.pop(self.users[user_name].user_id)
             self.users_names.remove(user_name)
+            self.users.pop(user_name)
 
         else:
-            columns = command  # ['user_id', 'n_zamen', 'n_last_otm', 'n_last_shabl']
+            tools = command  # ['user_id', 'n_zamen', 'n_last_otm', 'n_last_shabl']
 
-            for i in range(len(columns)):
+            for i in range(len(tools)):
                 if values[i] in ("NONE", "None", "none", "NULL", "null", "Null", None, ''):
-                    query = f"""UPDATE users SET {columns[i]} = NULL WHERE user_name = $1;"""
-
+                    query = f"""UPDATE users SET {tools[i]} = NULL WHERE user_name = $1;"""
                 else:
                     if isinstance(values[i], str):
                         values[i] = "'" + values[i] + "'"
-                    query = f"""UPDATE users SET {columns[i]} = {values[i]} WHERE user_name = $1;"""
+                    query = f"""UPDATE users SET {tools[i]} = {values[i]} WHERE user_name = $1;"""
                 async with self.pool.acquire():
                     await self.pool.execute(query, user_name)
 
@@ -151,6 +156,19 @@ class UsersDatabase:
 
         else:
             return f"Неверный формат - {new_user}"
+
+    async def change_last_group_for_all_users(self, old_group, new_group):
+        for user in self.users:
+            if self.users[user].menu == old_group:
+                await self.write(user, ['menu'], [new_group])
+                self.users[user].menu = new_group
+
+    async def get_all_from_bd(self):
+        query = """SELECT * FROM users"""
+        async with self.pool.acquire():
+            all = await self.pool.fetch(query)
+        all_users = [dict(row) for row in all]
+        return all_users
 
 
 users_db = UsersDatabase()

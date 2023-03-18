@@ -6,27 +6,35 @@ from loader import dp
 from utils.admin_utils import get_button_clicks
 from utils.face_control import Guests
 from utils.log import log
+from utils.user_utils import create_user_menu
 from work_vs_db.db_buttons import buttons_db
 from work_vs_db.db_filess import f_db
+from work_vs_db.db_moderators import moderators_db
 from work_vs_db.db_stat import stat_db
 from work_vs_db.db_users import users_db
 
 
-@dp.message_handler(text='Cостояние бота', state='*')
+@dp.message_handler(text='Мониторинг', state='*')
 async def start_menu(message: types.Message, state: FSMContext):
-    def start_menu_keyboard():
-        settings_buttons = ['Кнопки - группы - № блоков', 'Кнопки - файлы - нажатия', 'Список файлов',
-                            'Список пользователей', 'Список гостей', 'Статистика за сегодня', 'Статистика всех кнопок']
-        keyboard = InlineKeyboardMarkup(row_width=1)
+    async def start_menu_keyboard():
+        settings_buttons = {
+            'Кнопки - группы - № блоков': 'buttons_groups', 'Кнопки - файлы - нажатия': 'buttons_files',
+            'Список файлов': 'list_files', 'Список пользователей': 'list_users', 'Список гостей': 'list_guests',
+            'Статистика за сегодня': 'statistic_today', 'Статистика всех кнопок': 'statistic_all_tooday'}
+        keyb = InlineKeyboardMarkup(row_width=1)
         for butt in settings_buttons:
-            inline_button = InlineKeyboardButton(text=butt, callback_data=butt)
-            keyboard.add(inline_button)
-        return keyboard
+            if await moderators_db.check_access_moderator(chat_id, 'access_to_state_tools', settings_buttons[butt]):
+                inline_button = InlineKeyboardButton(text=butt, callback_data=butt)
+                keyb.add(inline_button)
+        return keyb
 
+    chat_id = message.from_user.id
+    user_name = message.from_user.username
     text = "Cостояние бота:"
+    keyboard = await start_menu_keyboard()
 
     await state.finish()
-    await message.answer(text, reply_markup=start_menu_keyboard())
+    await create_user_menu(chat_id=chat_id, user_name=user_name, text=text, keyboard=keyboard)
 
 
 #  ----====  СПИСОК ПОЛЬЗОВАТЕЛЕЙ  ====----

@@ -10,6 +10,7 @@ from utils.admin_menu_utils import create_menu_back, delete_all_after_time, crea
 from loader import dp
 from utils.face_control import Guests
 from utils.log import log
+from work_vs_db.db_moderators import moderators_db
 from work_vs_db.db_stat import stat_db
 from work_vs_db.db_users import users_db
 
@@ -19,12 +20,20 @@ class FCM(StatesGroup):
     waite_delete_user = State()
 
 
-async def users_keyboard():
+tools = {'list_users': 'Список пользователей', 'add_user': 'Добавить пользователя',
+         'del_user': 'Удалить пользователя', 'reset_statistic': 'Сброс статистики'}
+
+
+async def users_keyboard(chat_id):
     keyboard = InlineKeyboardMarkup(row_width=1)
-    keyboard.add(InlineKeyboardButton(text='Список пользователей', callback_data='all_users'))
-    keyboard.add(InlineKeyboardButton(text='Добавить пользователя', callback_data='add_user'))
-    keyboard.add(InlineKeyboardButton(text='Удалить пользователя', callback_data='del_user'))
-    keyboard.add(InlineKeyboardButton(text='Сброс статистики за сегодня', callback_data='clear_statistic'))
+    if await moderators_db.check_access_moderator(chat_id, 'access_to_users_tools', 'list_users'):
+        keyboard.add(InlineKeyboardButton(text='Список пользователей', callback_data='all_users'))
+    if await moderators_db.check_access_moderator(chat_id, 'access_to_users_tools', 'add_user'):
+        keyboard.add(InlineKeyboardButton(text='Добавить пользователя', callback_data='add_user'))
+    if await moderators_db.check_access_moderator(chat_id, 'access_to_users_tools', 'del_user'):
+        keyboard.add(InlineKeyboardButton(text='Удалить пользователя', callback_data='del_user'))
+    if await moderators_db.check_access_moderator(chat_id, 'access_to_users_tools', 'reset_statistic'):
+        keyboard.add(InlineKeyboardButton(text='Сброс статистики за сегодня', callback_data='clear_statistic'))
     return keyboard
 
 
@@ -47,7 +56,7 @@ async def users_menu(call: types.CallbackQuery, state: FSMContext):
     type_menu = 'id_msg_options'
     text = "Настройка пользователей:"
     chat_id = call.message.chat.id
-    keyboard = await users_keyboard()
+    keyboard = await users_keyboard(chat_id)
 
     await state.finish()
     await create_menu_back(call.message.chat.id)

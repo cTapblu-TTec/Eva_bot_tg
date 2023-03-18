@@ -1,12 +1,13 @@
 from aiogram import types
 
+from filters.moder_filter import FilterModerAcces
 from loader import dp
 from utils.admin_utils import download_sended_file
 from utils.log import log
 from work_vs_db.db_filess import f_db
 
 
-@dp.message_handler(content_types=[types.ContentType.DOCUMENT])
+@dp.message_handler(FilterModerAcces('files', 'change_file'), content_types=[types.ContentType.DOCUMENT])
 async def adm_change_file(message: types.Message):
     if message.document.file_name in f_db.files:
 
@@ -22,9 +23,8 @@ async def adm_change_file(message: types.Message):
         reply_mess, file_ok = await download_sended_file(message.document.file_id, message.document.file_name)
         if file_ok:
             await message.answer(reply_mess + f'\nКоманда для сброса:\n/set {message.document.file_name} num_line 0')
-            await log.write(f'admin: Загружен файл - {message.document.file_name}, ({message.from_user.username})')
+            await log.write(f'admin: Заменен файл - {message.document.file_name}, ({message.from_user.username})')
         else:
             await message.answer(reply_mess)
     else:
-
         await message.answer(f'Неверное имя файла, доступные имена: {", ".join(f_db.files)}')
