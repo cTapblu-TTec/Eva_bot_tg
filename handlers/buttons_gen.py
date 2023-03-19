@@ -22,7 +22,7 @@ async def group_button_list(group, username, admin):
                 list_grups = list_grups.split(',')
 
             if buttons_db.buttons[button].group_buttons == group or group in list_grups:
-                # админ
+                # админ todo скрытые кнопки для модераторов показывать? - наверно нет
                 if admin:
                     button_list.append(button)
                 # кнопка не скрыта (список юзеров пуст)
@@ -52,11 +52,11 @@ async def menu_keyboard(button_list, admin, user_id):
         if access_state:
             moder_menu.append('Мониторинг')
         if len(moder_menu) < 3:
-            moder_menu.append('Выбор клавиатуры')
+            moder_menu.append('Выбор группы кнопок')
         keyboard.add(*moder_menu)
 
     else:
-        keyboard.add(*['Мои настройки', 'Выбор клавиатуры'])
+        keyboard.add(*['Мои настройки', 'Выбор группы кнопок'])
 
     # добавляем кнопки группы
     buttons = []
@@ -80,11 +80,12 @@ async def create_buttons(message: types.Message):
     if group == 'Назад' and users_db.users[user_name].menu:
         group = users_db.users[user_name].menu
     is_admin = message.chat.id in ADMINS
+    is_moder = message.chat.id in moderators_db.moderators
     button_list = await group_button_list(group, user_name, is_admin)
     keyboard = await menu_keyboard(button_list, is_admin, user_id)
     text_message = "создана группа кнопок '" + group + "'"
 
-    if is_admin:
+    if is_admin or is_moder:
         await adm_chats_db.write(chat_id=message.chat.id, tools=['menu_back', 'menu_cancel'], values=['false', 'false'])
         await delete_loue_level_menu(message.chat.id, 'id_msg_settings')
     await message.answer(text_message, reply_markup=keyboard)
@@ -106,7 +107,10 @@ async def create_buttons_2(call: types.CallbackQuery):
     text_message = "создана группа кнопок '" + group + "'"
 
     if is_admin:
-        text_message += "\nКнопки 'Настройки бота' и 'Cостояние бота' видны только админам"
+        text_message += "\nКнопки 'Админка' и 'Мониторинг' видны только админам и модераторам"
+        await adm_chats_db.write(chat_id=user_id, tools=['menu_back', 'menu_cancel'], values=['false', 'false'])
+        await delete_loue_level_menu(user_id, 'id_msg_settings')
+
     await call.message.answer(text_message, reply_markup=keyboard)
     await users_db.write(user_name, ['menu', 'user_id'], [group, user_id])
     users_db.users[user_name].menu = group

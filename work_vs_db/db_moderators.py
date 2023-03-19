@@ -160,7 +160,7 @@ class ModeratorsDatabase:
             access = getattr(self.moderators[moder_id], option, None)
         if not access:
             return False
-        if access == 'all' or tool in access or tool == 'any':
+        if access == 'all' or tool in access.split(',') or tool == 'any':
             return True
         return False
 

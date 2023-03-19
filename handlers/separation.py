@@ -13,6 +13,7 @@ from work_vs_db.db_groups_buttons import groups_db
 async def keyboard_groups(user, is_admin):
     not_hidden_groups = []
     hidden_groups = []
+    # todo если все кнопки скрыты, то не показывать эту группу
     for group in groups_db.groups:
         if groups_db.groups[group].hidden == 0:
             not_hidden_groups.append(group)

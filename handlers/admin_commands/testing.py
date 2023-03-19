@@ -3,7 +3,6 @@ from aiogram import types
 from app import logger
 from filters.admin_filters import FilterCheckAdmin
 from loader import dp
-from utils.log import log
 
 from work_vs_db.db_adm_chats import adm_chats_db
 from work_vs_db.db_buttons import buttons_db
@@ -15,7 +14,7 @@ from work_vs_db.db_users import users_db
 
 @dp.message_handler(FilterCheckAdmin(), commands=['test'])
 async def test(message: types.Message):
-    async def check(db, buff, name_item):
+    async def check(db, buff, name_item, text):
         all_good = True
         for item in buff:
             for db_i in db:
@@ -24,16 +23,17 @@ async def test(message: types.Message):
                         # print(item, key, db_i[key], getattr(buff[item], key, None))
                         if db_i[key] != getattr(buff[item], key, None) and key != 'n_last_shabl':
                             logger.warning(f"test: {item}|{key}|{db_i[key]}|{getattr(buff[item], key, None)}")
-                            await log.write(f"test: {item}|{key}|{db_i[key]}|{getattr(buff[item], key, None)}", 'admin')
+                            text += f"test: {item}|{key}|{db_i[key]}|{getattr(buff[item], key, None)}\n"
                             all_good = False
-        return all_good
+        return all_good, text
 
-    b = await check(await buttons_db.get_all_from_bd(), buttons_db.buttons, 'name')
-    g = await check(await groups_db.get_all_from_bd(), groups_db.groups, 'name')
-    f = await check(await f_db.get_all_from_bd(), f_db.files, 'name')
-    u = await check(await users_db.get_all_from_bd(), users_db.users, 'user_name')
-    m = await check(await moderators_db.get_all_from_bd(), moderators_db.moderators, 'moderator_id')
-    a = await check(await adm_chats_db.get_all_from_bd(), adm_chats_db.chats, 'chat_id')
+    t = ''
+    b, t = await check(await buttons_db.get_all_from_bd(), buttons_db.buttons, 'name', t)
+    g, t = await check(await groups_db.get_all_from_bd(), groups_db.groups, 'name', t)
+    f, t = await check(await f_db.get_all_from_bd(), f_db.files, 'name', t)
+    u, t = await check(await users_db.get_all_from_bd(), users_db.users, 'user_name', t)
+    m, t = await check(await moderators_db.get_all_from_bd(), moderators_db.moderators, 'moderator_id', t)
+    a, t = await check(await adm_chats_db.get_all_from_bd(), adm_chats_db.chats, 'chat_id', t)
 
     answer = ''
     if b:
@@ -67,3 +67,5 @@ async def test(message: types.Message):
         answer += "\nАдминскиеЧаты - Fail"
 
     await message.answer(answer)
+    if t:
+        await message.answer(t)

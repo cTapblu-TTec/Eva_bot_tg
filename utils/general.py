@@ -67,6 +67,8 @@ async def general(text, username, chat_id, blocks=1):
     keyboard.add(*['Назад', button_name + ' Х' + str(blocks)])
 
     for i in range(blocks):
+        if i > 0:
+            keyboard = None
         text = await get_block(button_name, button, username)
         if text:
             if blocks > 1 and button.num_block:

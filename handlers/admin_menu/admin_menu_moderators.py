@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from asyncpg import exceptions
 
 from data.config import ADMINS
 from filters.admin_filters import CallFilter
@@ -10,7 +11,7 @@ from utils.admin_menu_utils import create_menu_back, delete_all_after_time, \
     delete_loue_level_menu, create_level_menu, edit_message
 
 from loader import dp
-from utils.admin_utils import get_key_by_value, good_format
+from utils.admin_utils import get_key_by_value
 from utils.log import log
 from work_vs_db.db_moderators import moderators_db
 from work_vs_db.db_users import users_db
@@ -103,7 +104,7 @@ async def add_moder_2(call: types.CallbackQuery, state: FSMContext):
     await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
     try:
         await moderators_db.write(moder_id, 'add_moderator', user_name)
-    except:
+    except exceptions.PostgresError:
         await create_level_menu(chat_id=chat_id, level=type_menu, text='Ошибка добавления модератора')
         await log.write(f'admin_menu: Ошибка добавления модератора, ({call.from_user.username})')
     else:
@@ -151,7 +152,7 @@ async def moder_del2(call: types.CallbackQuery, state: FSMContext):
     await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
     try:
         await moderators_db.write(moder_id, 'del_moderator')
-    except:
+    except exceptions.PostgresError:
         await create_level_menu(chat_id=chat_id, level=type_menu, text='Ошибка удаления модератора')
         await log.write(f'admin_menu: Ошибка удаления модератора, ({call.from_user.username})')
     else:
@@ -259,8 +260,9 @@ async def access_moder2(call: types.CallbackQuery, state: FSMContext):
     await create_menu_back(chat_id)
     await delete_loue_level_menu(chat_id=chat_id, type_menu=type_menu)
     try:
+        print(moder_id, options, acces)
         await moderators_db.write(moder_id, options, acces)
-    except:
+    except exceptions.PostgresError:
         await create_level_menu(chat_id=chat_id, level=type_menu, text='Ошибка настройки доступа модератора')
         await log.write(f'admin_menu: Ошибка настройки доступа модератора, ({call.from_user.username})')
     else:
@@ -284,20 +286,29 @@ async def access_moder2(call: types.CallbackQuery, state: FSMContext):
 
 async def set_access(option_id, access_id, moder_id):
 
-    def get_access(opt, acc):
+    def get_access(opt, access):
         moder_acc = getattr(moderators_db.moderators[moder_id], opt, None)
         all_tools = getattr(Data, opt[10:], None)
-        acc__name = get_key_by_value(all_tools, acc)
+        acc__name = get_key_by_value(all_tools, access)
         tools, tools_id = get_tools(opt)
         acc_t = tools[acc__name]
-        if moder_acc in ('all', 'None', None) or acc__name is None:
+        if moder_acc in ('None', None) or acc__name is None:
             return acc__name, "разрешен", acc_t
-        elif acc__name in moder_acc:
-            moder_acc = moder_acc.replace(acc__name, '')
-            return good_format(moder_acc), "запрещен", acc_t
+        elif moder_acc == 'all':
+            acc = list(tools)
+            acc.remove(acc__name)
+            moder_acc = ",".join(acc)
+            return moder_acc, "запрещен", acc_t
+        elif acc__name in moder_acc.split(','):
+            acc = moder_acc.split(',')
+            acc.remove(acc__name)
+            moder_acc = ",".join(acc)
+            return moder_acc, "запрещен", acc_t
         else:
-            moder_acc += ',' + acc__name
-            return good_format(moder_acc), "разрешен", acc_t
+            acc = moder_acc.split(',')
+            acc.append(acc__name)
+            moder_acc = ",".join(acc)
+            return moder_acc, "разрешен", acc_t
 
     moder_name = users_db.users_id_names[moder_id]
 
@@ -314,11 +325,11 @@ async def set_access(option_id, access_id, moder_id):
             acc_text = "разрешен любой"
         else:
             acc_text = "запрещен любой"
-        acces = [access_id for i in range(len(list(Data.options)))]
+        acces = [access_id for i in range(len(options))]
         text = f'Модератору {moder_name} {acc_text}{opt_text}'
     else:
         new_acces, acc_text, acc_name = get_access(option, access_id)
-        text = f'Модератору {moder_name} {acc_text} {Data.opt_text[option].lower()} ({acc_name})'
+        text = f'Модератору {moder_name} {acc_text} {opt_text} ({acc_name})'
         if new_acces:
             acces = [new_acces]
         else:
@@ -364,7 +375,7 @@ def access_tools_keyb(moder_id, option_id):
     keyb = InlineKeyboardMarkup(row_width=1)
     for tool in tools:
         access = getattr(moderators_db.moderators[moder_id], option, None)
-        if access and (access == 'all' or tool in access):
+        if access and (access == 'all' or tool in access.split(',')):
             access = " - Да"
         else:
             access = " - Нет"

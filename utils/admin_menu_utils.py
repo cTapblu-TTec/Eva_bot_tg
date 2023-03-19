@@ -65,27 +65,23 @@ async def delete_old_message(chat_id: int, type_menu: str):
 
 
 async def create_menu_back(chat_id, text="Создано меню 'Назад'"):
-    if chat_id in adm_chats_db.chats:
-        type_menu = 'id_msg_system'
-        chat = adm_chats_db.chats.get(chat_id)
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True).add('Назад', 'Админка')
-        if chat is None: return
-        if not chat.menu_back:
-            await adm_chats_db.write(chat_id=chat_id, tools=['menu_back', 'menu_cancel'], values=['true', 'false'])
-            await delete_old_message(chat_id=chat_id, type_menu=type_menu)
-            await create_level_menu(chat_id=chat_id, level=type_menu, text=text, keyboard=keyboard)
+    type_menu = 'id_msg_system'
+    chat = adm_chats_db.chats.get(chat_id)
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True).add('Назад', 'Админка')
+    if chat is None or not chat.menu_back:
+        await adm_chats_db.write(chat_id=chat_id, tools=['menu_back', 'menu_cancel'], values=['true', 'false'])
+        await delete_old_message(chat_id=chat_id, type_menu=type_menu)
+        await create_level_menu(chat_id=chat_id, level=type_menu, text=text, keyboard=keyboard)
 
 
 async def create_menu_cancel(chat_id, text="Создано меню 'Отмена'"):
-    if chat_id in adm_chats_db.chats:
-        type_menu = 'id_msg_system'
-        chat = adm_chats_db.chats.get(chat_id)
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True).add('Отмена')
-        if chat is None: return
-        if not chat.menu_cancel:
-            await adm_chats_db.write(chat_id=chat_id, tools=['menu_back', 'menu_cancel'], values=['false', 'true'])
-            await delete_old_message(chat_id=chat_id, type_menu=type_menu)
-            await create_level_menu(chat_id=chat_id, level=type_menu, text=text, keyboard=keyboard)
+    type_menu = 'id_msg_system'
+    chat = adm_chats_db.chats.get(chat_id)
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True).add('Отмена')
+    if chat is None or not chat.menu_cancel:
+        await adm_chats_db.write(chat_id=chat_id, tools=['menu_back', 'menu_cancel'], values=['false', 'true'])
+        await delete_old_message(chat_id=chat_id, type_menu=type_menu)
+        await create_level_menu(chat_id=chat_id, level=type_menu, text=text, keyboard=keyboard)
 
 
 async def edit_message(chat_id: int, type_menu: str, keyboard=None, text: str = '⁣'):
